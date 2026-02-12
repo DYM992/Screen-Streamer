@@ -41,15 +41,23 @@ const Receiver = () => {
           }
 
           const metadata = (incomingCall as any).metadata || {};
+          const sourceId = metadata.id || `remote-${Date.now()}`;
           const newSource: RemoteSource = {
-            id: metadata.id || `remote-${Date.now()}`,
+            id: sourceId,
             label: metadata.label || 'Remote Stream',
             type: metadata.type || 'video',
             stream: remoteStream,
           };
 
           setSources(prev => {
-            if (prev.find(s => s.id === newSource.id)) return prev;
+            const existingIndex = prev.findIndex(s => s.id === sourceId);
+            if (existingIndex !== -1) {
+              // Replace the stream for the existing source (auto‑refresh)
+              const updated = [...prev];
+              updated[existingIndex] = { ...updated[existingIndex], stream: remoteStream };
+              return updated;
+            }
+            // Add new source if not present
             return [...prev, newSource];
           });
         });
