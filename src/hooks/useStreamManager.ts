@@ -45,10 +45,26 @@ export const useStreamManager = (peerId?: string) => {
 
     newPeer.on('call', (call) => {
       call.answer();
+      
+      // When answering, we also push our sources
       sourcesRef.current.forEach(source => {
-        newPeer.call(call.peer, source.stream, {
+        const mediaCall = newPeer.call(call.peer, source.stream, {
           metadata: { id: source.id, label: source.label, type: source.type }
         });
+
+        // Optimize the underlying RTCPeerConnection if possible
+        // @ts-ignore - accessing internal peerConnection to set degradation preference
+        const pc = mediaCall.peerConnection as RTCPeerConnection;
+        if (pc) {
+          pc.getSenders().forEach(sender => {
+            if (sender.track?.kind === 'video') {
+              const params = sender.getParameters();
+              // @ts-ignore - degradationPreference is standard but TS might complain
+              params.degradationPreference = 'maintain-framerate';
+              sender.setParameters(params).catch(console.error);
+            }
+          });
+        }
       });
     });
 
@@ -60,6 +76,12 @@ export const useStreamManager = (peerId?: string) => {
     if (track.kind === 'video') {
       // @ts-ignore - contentHint is supported in modern browsers
       if ('contentHint' in track) track.contentHint = 'motion';
+      
+      // Force the track to maintain framerate
+      track.applyConstraints({
+        // @ts-ignore - frameRate constraints
+        frameRate: { min: 60, ideal: 60 }
+      }).catch(console.error);
     }
   };
 
@@ -67,8 +89,11 @@ export const useStreamManager = (peerId?: string) => {
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: { 
-          frameRate: { ideal: 60, max: 60 },
-          // @ts-ignore - cursor is a valid constraint for getDisplayMedia
+          frameRate: { min: 60, ideal: 60, max: 60 },
+          // Limit resolution slightly to ensure 60fps stability on high-res screens
+          width: { max: 1920 },
+          height: { max: 1080 },
+          // @ts-ignore
           cursor: 'always'
         },
         audio: {
@@ -89,7 +114,7 @@ export const useStreamManager = (peerId?: string) => {
       };
 
       setSources(prev => [...prev, newSource]);
-      toast.success("Screen source added");
+      toast.success("Screen source added at 60fps");
 
       if (stream.getAudioTracks().length > 0) {
         const audioId = `a-sys-${Math.random().toString(36).substr(2, 5)}`;
@@ -115,7 +140,7 @@ export const useStreamManager = (peerId?: string) => {
           echoCancellation: false,
           noiseSuppression: false,
           autoGainControl: false,
-          // @ts-ignore - latencyHint is supported for audio
+          // @ts-ignore
           latencyHint: 0
         } 
       });
@@ -141,7 +166,7 @@ export const useStreamManager = (peerId?: string) => {
       
       if (type === 'video') {
         newStream = await navigator.mediaDevices.getDisplayMedia({ 
-          video: { frameRate: { ideal: 60, max: 60 } }, 
+          video: { frameRate: { min: 60, ideal: 60, max: 60 }, width: { max: 1920 }, height: { max: 1080 } }, 
           audio: true 
         });
       } else {

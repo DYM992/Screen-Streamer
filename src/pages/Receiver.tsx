@@ -61,7 +61,7 @@ const Receiver = () => {
   if (status === 'connecting') return <div className="bg-black text-white p-4">Connecting to {room}...</div>;
 
   return (
-    <div className="fixed inset-0 bg-transparent overflow-hidden">
+    <div className="fixed inset-0 bg-black overflow-hidden">
       {displayedSources.length === 0 && (
         <div className="flex items-center justify-center h-full text-slate-700 text-xs uppercase tracking-widest">
           Waiting for sources from {room}...
@@ -70,23 +70,25 @@ const Receiver = () => {
       
       <div className="grid grid-cols-1 w-full h-full">
         {displayedSources.map(source => (
-          <div key={source.id} className="relative w-full h-full">
+          <div key={source.id} className="relative w-full h-full bg-black">
             {source.type === 'video' ? (
               <video 
                 autoPlay 
                 playsInline 
-                muted={false}
+                muted
                 controls={false}
                 disablePictureInPicture
+                disableRemotePlayback
                 ref={el => { 
                   if (el && el.srcObject !== source.stream) {
                     el.srcObject = source.stream;
-                    // Force low latency by ensuring we don't buffer
+                    // Force immediate playback and disable any internal buffering
                     el.play().catch(console.error);
+                    // @ts-ignore - some browsers support setting playback rate to keep up
+                    el.playbackRate = 1.0;
                   }
                 }}
                 className="w-full h-full object-contain"
-                style={{ imageRendering: 'pixelated' }} // Helps with clarity on some streams
               />
             ) : (
               <audio 
