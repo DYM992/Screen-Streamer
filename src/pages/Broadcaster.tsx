@@ -72,7 +72,7 @@ const Broadcaster = () => {
   // Save on Enter key
   const handleRoomIdKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      (.target.blur(); // trigger blur handler
+      e.target.blur(); // trigger blur handler
     }
   };
 
