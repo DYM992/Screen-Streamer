@@ -165,7 +165,7 @@ const SourceCard = ({
                   autoPlay
                   muted
                   playsInline
-                  className="w-full h-auto max-h-48 object-contain bg-black rounded-xl"
+                  className="w-full h-full object-cover bg-black"
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full gap-3 bg-slate-950/50">
