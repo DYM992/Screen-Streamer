@@ -4,7 +4,7 @@ import { useStreamManager } from '@/hooks/useStreamManager';
 import SourceCard from '@/components/SourceCard';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Monitor, Mic, Camera, LayoutGrid, Info, ArrowLeft, Play, Square, RefreshCw } from "lucide-react";
+import { Monitor, Mic, Camera, LayoutGrid, Info, ArrowLeft, Play, Square, RefreshCw, Edit2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const Broadcaster = () => {
@@ -20,7 +20,6 @@ const Broadcaster = () => {
     sources,
     connections,
     isBroadcasting,
-    isChangingName,
     toggleBroadcasting,
     addSource,
     activateSource,
@@ -34,7 +33,7 @@ const Broadcaster = () => {
   // Persist rename when user leaves the input (blur or Enter) or clicks Rename button
   const commitRoomIdChange = async () => {
     if (editingRoomId === roomName) return; // nothing changed
-    
+
     const oldId = roomName;
     const newId = editingRoomId.trim();
 
@@ -44,14 +43,40 @@ const Broadcaster = () => {
       return;
     }
 
-    // Update the room's primary key (id) to the new ID
-    const {error} = await supabase
-      .from('rooms')
-      .update({ id: oldId })
-      .eq('id', newId);
+    // 1️⃣ Update all sources to point to the new room ID
+    await supabase
+      .from('sources')
+      .update({ room_id: newId })
+      .eq('room_id', oldId);
 
-    // Update local state so the manager loads the new room
-    setRoomName(newId)
+    // 2️⃣ Fetch the old room data (to copy live status & thumbnail)
+    const { data: oldRoom } = await supabase
+      .from('rooms')
+      .select('*')
+      .eq('id', oldId)
+      .single();
+
+    // 3️⃣ Insert a new room with the new ID, preserving existing fields
+    if (oldRoom) {
+      const { error: insertError } = await supabase
+        .from('rooms')
+        .insert({
+          id: newId,
+          thumbnail: oldRoom.thumbnail,
+          is_live: oldRoom.is_live,
+          created_at: oldRoom.created_at,
+        });
+      if (insertError) {
+        console.error('Rename failed while inserting new room:', insertError);
+        return;
+      }
+    }
+
+    // 4️⃣ Delete the old room entry
+    await supabase.from('rooms').delete().eq('id', oldId);
+
+    // 5️⃣ Update local state so the manager loads the new room
+    setRoomName(newId);
   };
 
   // Handle input change without triggering a load
@@ -132,9 +157,10 @@ const Broadcaster = () => {
                   size="sm"
                   onClick={commitRoomIdChange}
                   disabled={isBroadcasting}
-                  className="h-8 w-16 text-indigo-400 hover:text-white"
+                  className="h-8 w-8 text-indigo-400 hover:text-white"
+                  title="Rename Room"
                 >
-                  Rename
+                  <Edit2 className="w-4 h-4" />
                 </Button>
               </div>
               <div className="flex items-center gap-2">
