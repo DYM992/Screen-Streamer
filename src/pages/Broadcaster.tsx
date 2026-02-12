@@ -5,40 +5,88 @@ import SourceCard from '@/components/SourceCard';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Monitor, Mic, Camera, LayoutGrid, Info, ArrowLeft, Play, Square, RefreshCw } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Broadcaster = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
   const initialRoom = searchParams.get('room') || `room-${Math.floor(Math.random() * 1000)}`;
   const [roomName, setRoomName] = useState(initialRoom);
+  // Separate editing state so we don't trigger a load on every keystroke
+  const [editingRoomId, setEditingRoomId] = useState(initialRoom);
 
-  const { 
-    sources, 
-    connections, 
+  const {
+    sources,
+    connections,
     isBroadcasting,
     toggleBroadcasting,
     addSource,
     activateSource,
     deactivateSource,
-    updateSourceLabel, 
+    updateSourceLabel,
     removeSource,
     reconnectAll,
-    saveToDatabase
+    saveToDatabase,
   } = useStreamManager(roomName);
+
+  // Persist rename when user leaves the input (blur or Enter)
+  const commitRoomIdChange = async () => {
+    if (editingRoomId === roomName) return; // nothing changed
+
+    const oldId = roomName;
+    const newId = editingRoomId.trim();
+
+    if (!newId) {
+      // revert UI if empty
+      setEditingRoomId(oldId);
+      return;
+    }
+
+    // 1️⃣ Insert new room if it doesn't exist
+    await supabase.from('rooms').upsert({ id: newId });
+
+    // 2️⃣ Move all sources to the new room
+    await supabase
+      .from('sources')
+      .update({ room_id: newId })
+      .eq('room_id', oldId);
+
+    // 3️⃣ Delete the old room (its sources are already moved)
+    await supabase.from('rooms').delete().eq('id', oldId);
+
+    // Update local state so the manager loads the new room
+    setRoomName(newId);
+  };
+
+  // Handle input change without triggering a load
+  const handleRoomIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditingRoomId(e.target.value);
+  };
+
+  // Save on blur
+  const handleRoomIdBlur = async () => {
+    await commitRoomIdChange();
+  };
+
+  // Save on Enter key
+  const handleRoomIdKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      (.target.blur(); // trigger blur handler
+    }
+  };
 
   useEffect(() => {
     if (!searchParams.get('room')) {
       setSearchParams({ room: roomName }, { replace: true });
     }
-    
-    // Handle auto-start from dashboard
-    if (searchParams.get('autoStart') === 'true' && !isBroadcasting) {
+
+    // Auto‑start from dashboard (preserves previous logic)
+    if (searchParams.get('autoStart') === "true" && !isBroadcasting) {
       const timer = setTimeout(() => {
         toggleBroadcasting();
-        // Remove autoStart from URL
         const newParams = new URLSearchParams(searchParams);
-        newParams.delete('autoStart');
+        newParams.delete("autoStart");
         setSearchParams(newParams, { replace: true });
       }, 1000);
       return () => clearTimeout(timer);
@@ -47,7 +95,7 @@ const Broadcaster = () => {
 
   const handleBack = async () => {
     await saveToDatabase();
-    navigate('/');
+    navigate("/");
   };
 
   const hasInactiveSources = sources.some(s => !s.isActive);
@@ -55,12 +103,12 @@ const Broadcaster = () => {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 selection:bg-indigo-500/30">
       <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-10">
-        
+
         <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
           <div className="space-y-4">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleBack}
               className="text-slate-400 hover:text-white -ml-2"
             >
@@ -78,9 +126,11 @@ const Broadcaster = () => {
             <div className="bg-slate-900/50 border border-slate-800 p-1.5 rounded-2xl flex items-center gap-4 pr-4">
               <div className="bg-slate-950 px-4 py-2 rounded-xl border border-slate-800">
                 <Label className="text-[10px] text-slate-500 uppercase font-black block mb-1">Room ID</Label>
-                <input 
-                  value={roomName}
-                  onChange={(e) => setRoomName(e.target.value)}
+                <input
+                  value={editingRoomId}
+                  onChange={handleRoomIdChange}
+                  onBlur={handleRoomIdBlur}
+                  onKeyDown={handleRoomIdKeyDown}
                   disabled={isBroadcasting}
                   className="bg-transparent border-none focus:ring-0 text-sm font-mono w-32 p-0 disabled:opacity-50"
                 />
@@ -91,12 +141,12 @@ const Broadcaster = () => {
               </div>
             </div>
 
-            <Button 
+            <Button
               onClick={toggleBroadcasting}
               className={`h-14 px-8 rounded-2xl font-black text-lg transition-all ${
-                isBroadcasting 
-                ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/20' 
-                : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                isBroadcasting
+                  ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/20'
+                  : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
               }`}
             >
               {isBroadcasting ? (
@@ -119,9 +169,9 @@ const Broadcaster = () => {
                   </span>
                 </h2>
                 {hasInactiveSources && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={reconnectAll}
                     className="border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 rounded-full h-8"
                   >
@@ -150,11 +200,11 @@ const Broadcaster = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {sources.map(source => (
-                  <SourceCard 
-                    key={source.id} 
-                    source={source} 
+                  <SourceCard
+                    key={source.id}
+                    source={source}
                     roomName={roomName}
-                    onRemove={removeSource} 
+                    onRemove={removeSource}
                     onRename={updateSourceLabel}
                     onActivate={activateSource}
                     onDeactivate={deactivateSource}
@@ -174,8 +224,8 @@ const Broadcaster = () => {
                 <div className="space-y-2">
                   <p className="text-xs font-black text-indigo-500/50 uppercase tracking-widest">Visibility</p>
                   <p className="text-sm text-slate-400 leading-relaxed">
-                    {isBroadcasting 
-                      ? "Your room is currently LIVE. Receivers can connect using your Room ID." 
+                    {isBroadcasting
+                      ? "Your room is currently LIVE. Receivers can connect using your Room ID."
                       : "Your room is OFFLINE. Configure your sources before going live."}
                   </p>
                 </div>
