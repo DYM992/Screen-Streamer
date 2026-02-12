@@ -273,14 +273,20 @@ export const useStreamManager = (roomName: string) => {
     setSources(prev => prev.map(s => s.id === id ? { ...s, label } : s));
   }, []);
 
-  const updateSourceDeviceId = useCallback((id: string, deviceId: string) => {
+  const updateSourceDeviceId = useCallback(async (id: string, deviceId: string) => {
+    // Update state and DB
     setSources(prev => prev.map(s => s.id === id ? { ...s, deviceId } : s));
-    // Persist to DB
     const source = sourcesRef.current.find(s => s.id === id);
     if (source?.dbId) {
-      supabase.from('sources').update({ device_id: deviceId }).eq('id', source.dbId);
+      await supabase.from('sources').update({ device_id: deviceId }).eq('id', source.dbId);
     }
-  }, []);
+
+    // If the source is currently active, restart it with the new device
+    if (source?.isActive) {
+      await deactivateSource(id);
+      await activateSource(id);
+    }
+  }, [deactivateSource, activateSource]);
 
   const reconnectAll = useCallback(async () => {
     const enabledButInactive = sources.filter(s => s.isEnabled && !s.isActive);
