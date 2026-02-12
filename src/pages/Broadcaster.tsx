@@ -18,10 +18,11 @@ const Broadcaster = () => {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Focus the input when rename mode is activated
+  // Focus and select all text when rename mode is activated
   useEffect(() => {
     if (isEditingRoomId && inputRef.current) {
       inputRef.current.focus();
+      inputRef.current.select();
     }
   }, [isEditingRoomId]);
 
