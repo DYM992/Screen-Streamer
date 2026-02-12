@@ -101,7 +101,7 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: So
               <div className="py-6 space-y-6">
                 {source.type === 'audio' ? (
                   <div className="space-y-3">
-                    <label className="text-xs font-black uppercase text-slate-500 tracking-widest">Select Microphone</label>
+                    <label className="text-xs font-white uppercase text-slate-500 tracking-widest">Select Microphone</label>
                     <Select onValueChange={setSelectedDevice} defaultValue={selectedDevice}>
                       <SelectTrigger className="bg-slate-900 border-slate-800">
                         <SelectValue placeholder="Choose a device..." />
