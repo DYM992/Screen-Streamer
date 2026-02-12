@@ -44,6 +44,11 @@ const Broadcaster = () => {
       setIsEditingRoomId(false);
       return;
     }
+    
+    const { error: roomError } = await supabase
+      .from('rooms')
+      .update({ id: newId })
+      .eq('id', oldId);
 
     const { error: sourceError } = await supabase
       .from('sources')
@@ -55,10 +60,6 @@ const Broadcaster = () => {
       return;
     }
 
-    const { error: roomError } = await supabase
-      .from('rooms')
-      .update({ id: newId })
-      .eq('id', oldId);
 
     if (roomError) {
       console.error('Failed to rename room:', roomError);
