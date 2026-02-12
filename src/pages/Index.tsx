@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Radio, Tv, ShieldCheck, History, ArrowRight } from "lucide-react";
+import { Radio, Tv, ShieldCheck, History, ArrowRight, Plus } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -34,11 +34,13 @@ const Index = () => {
               </div>
               <CardTitle className="text-2xl text-white">Broadcaster</CardTitle>
               <CardDescription className="text-slate-400">
-                Capture your screen, camera, and microphones to stream to other devices.
+                Configure your sources and start a live broadcast room.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full bg-indigo-600 hover:bg-indigo-700 h-12 font-bold rounded-xl">Start Broadcasting</Button>
+              <Button className="w-full bg-indigo-600 hover:bg-indigo-700 h-12 font-bold rounded-xl">
+                <Plus className="w-5 h-5 mr-2" /> Create Room
+              </Button>
             </CardContent>
           </Card>
 
@@ -49,7 +51,7 @@ const Index = () => {
               </div>
               <CardTitle className="text-2xl text-white">Receiver</CardTitle>
               <CardDescription className="text-slate-400">
-                Receive streams for monitoring or to use as a browser source in OBS.
+                Join an existing room to monitor or capture streams.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -62,7 +64,7 @@ const Index = () => {
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-slate-400 px-2">
               <History className="w-4 h-4" />
-              <h3 className="text-sm font-bold uppercase tracking-widest">Recent Rooms</h3>
+              <h3 className="text-sm font-bold uppercase tracking-widest">Your Rooms</h3>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {recentRooms.map(room => (

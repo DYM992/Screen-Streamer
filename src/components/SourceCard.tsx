@@ -4,14 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
   Monitor, Mic, Camera, Trash2, Edit2, Check, ExternalLink, Settings, 
-  RefreshCw
+  RefreshCw, PlayCircle
 } from "lucide-react";
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger 
 } from "@/components/ui/dialog";
-import { 
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
-} from "@/components/ui/select";
 import { StreamSource } from "@/hooks/useStreamManager";
 import { toast } from "sonner";
 
@@ -20,31 +17,19 @@ interface SourceCardProps {
   roomName: string;
   onRemove: (id: string) => void;
   onRename: (id: string, label: string) => void;
-  onUpdateStream: (id: string, type: 'video' | 'audio' | 'camera', deviceId?: string) => Promise<void>;
+  onUpdateStream: (id: string) => Promise<void>;
 }
 
 const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: SourceCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [label, setLabel] = useState(source.label);
-  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [selectedDevice, setSelectedDevice] = useState<string>(source.deviceId || "");
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (videoRef.current && (source.type === 'video' || source.type === 'camera')) {
+    if (videoRef.current && source.stream && (source.type === 'video' || source.type === 'camera')) {
       videoRef.current.srcObject = source.stream;
     }
   }, [source.stream, source.type]);
-
-  useEffect(() => {
-    if (source.type === 'audio' || source.type === 'camera') {
-      navigator.mediaDevices.enumerateDevices().then(d => {
-        setDevices(d.filter(device => 
-          source.type === 'audio' ? device.kind === 'audioinput' : device.kind === 'videoinput'
-        ));
-      });
-    }
-  }, [source.type]);
 
   const handleRename = () => {
     onRename(source.id, label);
@@ -64,7 +49,9 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: So
   };
 
   return (
-    <Card className="overflow-hidden border-2 border-indigo-500/20 bg-slate-900/80 backdrop-blur-xl transition-all hover:border-indigo-500/40 group">
+    <Card className={`overflow-hidden border-2 transition-all group ${
+      source.isReady ? 'border-indigo-500/20 bg-slate-900/80' : 'border-slate-800 bg-slate-900/40 grayscale'
+    }`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <div className="flex items-center gap-2 flex-1 mr-2">
           {getIcon()}
@@ -92,57 +79,6 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: So
           )}
         </div>
         <div className="flex gap-1">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-white">
-                <Settings className="w-4 h-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-slate-950 border-slate-800 text-white">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-white">
-                  <Settings className="w-5 h-5 text-indigo-500" />
-                  Source Settings: {source.label}
-                </DialogTitle>
-              </DialogHeader>
-              
-              <div className="py-6 space-y-6">
-                {source.type !== 'video' ? (
-                  <div className="space-y-3">
-                    <label className="text-xs font-black uppercase text-slate-400 tracking-widest">Select Device</label>
-                    <Select onValueChange={setSelectedDevice} defaultValue={selectedDevice}>
-                      <SelectTrigger className="bg-slate-900 border-slate-800 text-white">
-                        <SelectValue placeholder="Choose a device..." />
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-900 border-slate-800 text-white">
-                        {devices.map(device => (
-                          <SelectItem key={device.deviceId} value={device.deviceId}>
-                            {device.label || `${source.type === 'audio' ? 'Mic' : 'Camera'} ${device.deviceId.slice(0, 5)}`}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button 
-                      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white" 
-                      onClick={() => onUpdateStream(source.id, source.type, selectedDevice)}
-                    >
-                      <RefreshCw className="w-4 h-4 mr-2" /> Update Device
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <Button 
-                      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white" 
-                      onClick={() => onUpdateStream(source.id, 'video')}
-                    >
-                      <RefreshCw className="w-4 h-4 mr-2" /> Re-select Capture Source
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
-
           <Button variant="ghost" size="icon" onClick={copyObsUrl} className="h-8 w-8 text-slate-400 hover:text-indigo-400" title="Copy OBS Source URL">
             <ExternalLink className="w-4 h-4" />
           </Button>
@@ -153,17 +89,41 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: So
       </CardHeader>
       <CardContent>
         <div className="relative aspect-video bg-black rounded-xl overflow-hidden">
-          {source.type !== 'audio' ? (
-            <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-contain" />
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full gap-3 bg-slate-950/50">
-              <div className="flex gap-1 items-end h-8">
-                {[1,2,3,4,5].map(i => (
-                  <div key={i} className="w-1.5 bg-emerald-500 rounded-full animate-pulse" style={{ height: `${Math.random() * 100}%`, animationDelay: `${i * 0.1}s` }} />
-                ))}
-              </div>
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Audio Active</span>
+          {!source.isReady ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-slate-950/80 backdrop-blur-sm">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Source Offline</p>
+              <Button 
+                onClick={() => onUpdateStream(source.id)}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-full h-10 px-6 font-bold"
+              >
+                <PlayCircle className="w-4 h-4 mr-2" /> Activate
+              </Button>
             </div>
+          ) : (
+            <>
+              {source.type !== 'audio' ? (
+                <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-contain" />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full gap-3 bg-slate-950/50">
+                  <div className="flex gap-1 items-end h-8">
+                    {[1,2,3,4,5].map(i => (
+                      <div key={i} className="w-1.5 bg-emerald-500 rounded-full animate-pulse" style={{ height: `${Math.random() * 100}%`, animationDelay: `${i * 0.1}s` }} />
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Audio Active</span>
+                </div>
+              )}
+              <div className="absolute top-2 right-2">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => onUpdateStream(source.id)}
+                  className="h-8 w-8 bg-black/50 backdrop-blur-md text-white hover:bg-black/80 rounded-full"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                </Button>
+              </div>
+            </>
           )}
         </div>
       </CardContent>
