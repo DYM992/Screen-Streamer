@@ -4,7 +4,7 @@ import { useStreamManager } from '@/hooks/useStreamManager';
 import SourceCard from '@/components/SourceCard';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Monitor, Mic, Camera, LayoutGrid, Info, ArrowLeft, Play, Square, RefreshCw, Edit2 } from "lucide-react";
+import { Monitor, Mic, Camera, LayoutGrid, Info, ArrowLeft, Play, Square, RefreshCw, Edit2, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const Broadcaster = () => {
@@ -13,9 +13,8 @@ const Broadcaster = () => {
 
   const initialRoom = searchParams.get('room') || `room-${Math.floor(Math.random() * 1000)}`;
   const [roomName, setRoomName] = useState(initialRoom);
-  // Separate editing state so we don't trigger a load on every keystroke
   const [editingRoomId, setEditingRoomId] = useState(initialRoom);
-  const [isEditingRoomId, setIsEditingRoomId] = useState(false); // new toggle
+  const [isEditingRoomId, setIsEditingRoomId] = useState(false);
 
   const {
     sources,
@@ -31,24 +30,21 @@ const Broadcaster = () => {
     saveToDatabase,
   } = useStreamManager(roomName);
 
-  // Persist rename when user clicks the save button
   const commitRoomIdChange = async () => {
     if (editingRoomId === roomName) {
       setIsEditingRoomId(false);
-      return; // nothing changed
+      return;
     }
 
     const oldId = roomName;
     const newId = editingRoomId.trim();
 
     if (!newId) {
-      // revert UI if empty
       setEditingRoomId(oldId);
       setIsEditingRoomId(false);
       return;
     }
 
-    // 1️⃣ Update all sources to point to the new room ID first (avoids FK conflict)
     const { error: sourceError } = await supabase
       .from('sources')
       .update({ room_id: newId })
@@ -59,7 +55,6 @@ const Broadcaster = () => {
       return;
     }
 
-    // 2️⃣ Update the room's primary key (id) to the new ID
     const { error: roomError } = await supabase
       .from('rooms')
       .update({ id: newId })
@@ -70,35 +65,29 @@ const Broadcaster = () => {
       return;
     }
 
-    // 3️⃣ Update local state & URL so the manager loads the new room
     setRoomName(newId);
     setSearchParams({ room: newId }, { replace: true });
     setIsEditingRoomId(false);
   };
 
-  // Handle input change without triggering a load
   const handleRoomIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEditingRoomId(e.target.value);
   };
 
-  // Save on blur (only if currently editing)
   const handleRoomIdBlur = async () => {
     if (isEditingRoomId) {
       await commitRoomIdChange();
     }
   };
 
-  // Save on Enter key
   const handleRoomIdKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      e.target.blur(); // trigger blur handler
+      e.target.blur();
     }
   };
 
-  // Toggle edit mode when the edit button is clicked
   const toggleEditMode = async () => {
     if (isEditingRoomId) {
-      // Save changes
       await commitRoomIdChange();
     } else {
       setIsEditingRoomId(true);
@@ -106,12 +95,10 @@ const Broadcaster = () => {
   };
 
   useEffect(() => {
-    // Ensure the URL always contains the room param (in case it was missing initially)
     if (!searchParams.get('room')) {
       setSearchParams({ room: roomName }, { replace: true });
     }
 
-    // Auto‑start from dashboard: trigger broadcast immediately
     if (searchParams.get('autoStart') === "true" && !isBroadcasting) {
       toggleBroadcasting();
       const newParams = new URLSearchParams(searchParams);
@@ -169,7 +156,7 @@ const Broadcaster = () => {
                   className="h-8 w-8 text-indigo-400 hover:text-white"
                   title={isEditingRoomId ? "Save Room ID" : "Rename Room"}
                 >
-                  <Edit2 className="w-4 h-4" />
+                  {isEditingRoomId ? <Check className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
                 </Button>
               </div>
               <div className="flex items-center gap-2">
