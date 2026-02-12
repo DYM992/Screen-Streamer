@@ -182,7 +182,7 @@ const Broadcaster = () => {
                   onKeyDown={handleRoomIdKeyDown}
                   disabled={!isEditingRoomId || isBroadcasting}
                   className="bg-transparent border-none focus:ring-0 text-sm font-mono w-32 p-0 disabled:opacity-50"
-                  autofocus
+                  autoFocus
                 />
                 <Button
                   variant="ghost"
