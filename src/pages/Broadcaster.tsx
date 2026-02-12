@@ -34,7 +34,8 @@ const Broadcaster = () => {
   // Persist rename when user leaves the input (blur or Enter) or clicks Rename button
   const commitRoomIdChange = async () => {
     if (editingRoomId === roomName) return; // nothing changed
-
+    
+    const oldId = roomName;
     const newId = editingRoomId.trim();
 
     if (!newId) {
@@ -46,7 +47,7 @@ const Broadcaster = () => {
     // Update the room's primary key (id) to the new ID
     await supabase
       .from('rooms')
-      .update({ id: roomName })
+      .update({ id: oldId })
       .eq('id', newId);
 
     // Update local state so the manager loads the new room
