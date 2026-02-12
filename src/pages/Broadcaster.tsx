@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStreamManager } from '@/hooks/useStreamManager';
 import SourceCard from '@/components/SourceCard';
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,24 @@ import { Monitor, Mic, Camera, LayoutGrid, Info, ArrowLeft } from "lucide-react"
 
 const Broadcaster = () => {
   const navigate = useNavigate();
-  const [roomName, setRoomName] = useState(`stream-${Math.floor(Math.random() * 1000)}`);
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Initialize room name from URL or generate a new one
+  const initialRoom = searchParams.get('room') || `stream-${Math.floor(Math.random() * 1000)}`;
+  const [roomName, setRoomName] = useState(initialRoom);
+
+  // Sync roomName state with URL search params
+  useEffect(() => {
+    if (!searchParams.get('room')) {
+      setSearchParams({ room: roomName }, { replace: true });
+    }
+  }, []);
+
+  const handleRoomChange = (newRoom: string) => {
+    setRoomName(newRoom);
+    setSearchParams({ room: newRoom }, { replace: true });
+  };
+
   const { 
     sources, 
     connections, 
@@ -48,7 +65,7 @@ const Broadcaster = () => {
                 <Label className="text-[10px] text-slate-500 uppercase font-black block mb-1">Room ID</Label>
                 <input 
                   value={roomName}
-                  onChange={(e) => setRoomName(e.target.value)}
+                  onChange={(e) => handleRoomChange(e.target.value)}
                   className="bg-transparent border-none focus:ring-0 text-sm font-mono w-32 p-0"
                 />
               </div>
@@ -76,7 +93,7 @@ const Broadcaster = () => {
                 <Button onClick={() => addCameraSource()} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl h-11">
                   <Camera className="w-4 h-4 mr-2" /> Camera
                 </Button>
-                <Button onClick={() => addMicSource()} variant="outline" className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl h-11">
+                <Button onClick={() => addMicSource()} variant="outline" className="border-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl h-11">
                   <Mic className="w-4 h-4 mr-2" /> Mic
                 </Button>
               </div>
