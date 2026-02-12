@@ -3,12 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
-  Monitor, Mic, Camera, Trash2, Edit2, Check, ExternalLink, Settings, 
-  RefreshCw, PlayCircle
+  Monitor, Mic, Camera, Trash2, Edit2, Check, ExternalLink, 
+  RefreshCw, Eye, EyeOff
 } from "lucide-react";
-import { 
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger 
-} from "@/components/ui/dialog";
 import { StreamSource } from "@/hooks/useStreamManager";
 import { toast } from "sonner";
 
@@ -17,10 +14,11 @@ interface SourceCardProps {
   roomName: string;
   onRemove: (id: string) => void;
   onRename: (id: string, label: string) => void;
-  onUpdateStream: (id: string) => Promise<void>;
+  onActivate: (id: string) => Promise<boolean | undefined>;
+  onDeactivate: (id: string) => void;
 }
 
-const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: SourceCardProps) => {
+const SourceCard = ({ source, roomName, onRemove, onRename, onActivate, onDeactivate }: SourceCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [label, setLabel] = useState(source.label);
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -29,11 +27,19 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: So
     if (videoRef.current && source.stream && (source.type === 'video' || source.type === 'camera')) {
       videoRef.current.srcObject = source.stream;
     }
-  }, [source.stream, source.type]);
+  }, [source.stream, source.isActive]);
 
   const handleRename = () => {
     onRename(source.id, label);
     setIsEditing(false);
+  };
+
+  const toggleVisibility = () => {
+    if (source.isActive) {
+      onDeactivate(source.id);
+    } else {
+      onActivate(source.id);
+    }
   };
 
   const copyObsUrl = () => {
@@ -50,7 +56,7 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: So
 
   return (
     <Card className={`overflow-hidden border-2 transition-all group ${
-      source.isReady ? 'border-indigo-500/20 bg-slate-900/80' : 'border-slate-800 bg-slate-900/40 grayscale'
+      source.isActive ? 'border-indigo-500/20 bg-slate-900/80' : 'border-slate-800 bg-slate-900/40 grayscale opacity-60'
     }`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <div className="flex items-center gap-2 flex-1 mr-2">
@@ -79,6 +85,15 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: So
           )}
         </div>
         <div className="flex gap-1">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={toggleVisibility} 
+            className={`h-8 w-8 ${source.isActive ? 'text-indigo-400' : 'text-slate-500'}`}
+            title={source.isActive ? "Disable Source" : "Enable Source"}
+          >
+            {source.isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+          </Button>
           <Button variant="ghost" size="icon" onClick={copyObsUrl} className="h-8 w-8 text-slate-400 hover:text-indigo-400" title="Copy OBS Source URL">
             <ExternalLink className="w-4 h-4" />
           </Button>
@@ -89,15 +104,10 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: So
       </CardHeader>
       <CardContent>
         <div className="relative aspect-video bg-black rounded-xl overflow-hidden">
-          {!source.isReady ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-slate-950/80 backdrop-blur-sm">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Source Offline</p>
-              <Button 
-                onClick={() => onUpdateStream(source.id)}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-full h-10 px-6 font-bold"
-              >
-                <PlayCircle className="w-4 h-4 mr-2" /> Activate
-              </Button>
+          {!source.isActive ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-950/80 backdrop-blur-sm">
+              <EyeOff className="w-8 h-8 text-slate-700" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-600">Disabled</p>
             </div>
           ) : (
             <>
@@ -117,7 +127,7 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: So
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  onClick={() => onUpdateStream(source.id)}
+                  onClick={() => onActivate(source.id)}
                   className="h-8 w-8 bg-black/50 backdrop-blur-md text-white hover:bg-black/80 rounded-full"
                 >
                   <RefreshCw className="w-3 h-3" />

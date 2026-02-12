@@ -8,7 +8,7 @@ export interface StreamSource {
   type: 'video' | 'audio' | 'camera';
   stream?: MediaStream;
   deviceId?: string;
-  isReady: boolean;
+  isActive: boolean;
 }
 
 export const useStreamManager = (roomName: string) => {
@@ -23,7 +23,7 @@ export const useStreamManager = (roomName: string) => {
     const saved = localStorage.getItem(`room_meta_${roomName}`);
     if (saved) {
       const metadata = JSON.parse(saved);
-      setSources(metadata.map((m: any) => ({ ...m, isReady: false, stream: undefined })));
+      setSources(metadata.map((m: any) => ({ ...m, isActive: false, stream: undefined })));
     }
   }, [roomName]);
 
@@ -106,7 +106,7 @@ export const useStreamManager = (roomName: string) => {
       newPeer.on('call', (call) => {
         call.answer();
         sourcesRef.current.forEach(source => {
-          if (source.stream) {
+          if (source.stream && source.isActive) {
             const mediaCall = newPeer.call(call.peer, source.stream, {
               metadata: { id: source.id, label: source.label, type: source.type === 'camera' ? 'video' : source.type }
             });
@@ -127,7 +127,7 @@ export const useStreamManager = (roomName: string) => {
   }, [isBroadcasting, roomName, peer, updateEncodingParameters]);
 
   const activateSource = useCallback(async (id: string) => {
-    const source = sources.find(s => s.id === id);
+    const source = sourcesRef.current.find(s => s.id === id);
     if (!source) return;
 
     try {
@@ -144,18 +144,33 @@ export const useStreamManager = (roomName: string) => {
         });
       }
 
-      setSources(prev => prev.map(s => s.id === id ? { ...s, stream, isReady: true } : s));
-      toast.success(`${source.label} activated`);
+      setSources(prev => prev.map(s => s.id === id ? { ...s, stream, isActive: true } : s));
+      return true;
     } catch (err) {
       toast.error(`Failed to activate ${source.label}`);
+      return false;
     }
-  }, [sources]);
+  }, []);
+
+  const deactivateSource = useCallback((id: string) => {
+    setSources(prev => prev.map(s => {
+      if (s.id === id) {
+        if (s.stream) s.stream.getTracks().forEach(t => t.stop());
+        return { ...s, stream: undefined, isActive: false };
+      }
+      return s;
+    }));
+  }, []);
 
   const addSource = useCallback(async (type: 'video' | 'audio' | 'camera') => {
     const id = `${type[0]}-${Math.random().toString(36).substr(2, 5)}`;
     const label = type.charAt(0).toUpperCase() + type.slice(1);
-    setSources(prev => [...prev, { id, label, type, isReady: false }]);
-    await activateSource(id);
+    
+    // Add to state first so activateSource can find it
+    setSources(prev => [...prev, { id, label, type, isActive: false }]);
+    
+    // Small delay to ensure state is updated before activation
+    setTimeout(() => activateSource(id), 50);
   }, [activateSource]);
 
   const removeSource = useCallback((id: string) => {
@@ -170,6 +185,20 @@ export const useStreamManager = (roomName: string) => {
     setSources(prev => prev.map(s => s.id === id ? { ...s, label } : s));
   }, []);
 
+  const reconnectAll = useCallback(async () => {
+    const inactive = sources.filter(s => !s.isActive);
+    if (inactive.length === 0) return;
+    
+    toast.promise(
+      Promise.all(inactive.map(s => activateSource(s.id))),
+      {
+        loading: 'Reconnecting sources...',
+        success: 'Sources reconnected',
+        error: 'Some sources failed to reconnect'
+      }
+    );
+  }, [sources, activateSource]);
+
   return { 
     sources, 
     connections: connections.size, 
@@ -177,7 +206,9 @@ export const useStreamManager = (roomName: string) => {
     toggleBroadcasting,
     addSource,
     activateSource,
+    deactivateSource,
     removeSource,
-    updateSourceLabel
+    updateSourceLabel,
+    reconnectAll
   };
 };

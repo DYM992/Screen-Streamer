@@ -4,7 +4,7 @@ import { useStreamManager } from '@/hooks/useStreamManager';
 import SourceCard from '@/components/SourceCard';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Monitor, Mic, Camera, LayoutGrid, Info, ArrowLeft, Play, Square } from "lucide-react";
+import { Monitor, Mic, Camera, LayoutGrid, Info, ArrowLeft, Play, Square, RefreshCw } from "lucide-react";
 
 const Broadcaster = () => {
   const navigate = useNavigate();
@@ -31,9 +31,13 @@ const Broadcaster = () => {
     toggleBroadcasting,
     addSource,
     activateSource,
+    deactivateSource,
     updateSourceLabel, 
-    removeSource
+    removeSource,
+    reconnectAll
   } = useStreamManager(roomName);
+
+  const hasInactiveSources = sources.some(s => !s.isActive);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 selection:bg-indigo-500/30">
@@ -94,12 +98,24 @@ const Broadcaster = () => {
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-10">
           <div className="xl:col-span-3 space-y-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <h2 className="text-2xl font-bold flex items-center gap-3">
-                Live Sources
-                <span className="text-sm bg-slate-900 text-slate-400 px-3 py-1 rounded-full border border-slate-800">
-                  {sources.length}
-                </span>
-              </h2>
+              <div className="flex items-center gap-4">
+                <h2 className="text-2xl font-bold flex items-center gap-3">
+                  Live Sources
+                  <span className="text-sm bg-slate-900 text-slate-400 px-3 py-1 rounded-full border border-slate-800">
+                    {sources.length}
+                  </span>
+                </h2>
+                {hasInactiveSources && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={reconnectAll}
+                    className="border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 rounded-full h-8"
+                  >
+                    <RefreshCw className="w-3 h-3 mr-2" /> Reconnect All
+                  </Button>
+                )}
+              </div>
               <div className="flex flex-wrap gap-2">
                 <Button onClick={() => addSource('video')} className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-bold rounded-xl h-11">
                   <Monitor className="w-4 h-4 mr-2" /> Add Screen
@@ -127,7 +143,8 @@ const Broadcaster = () => {
                     roomName={roomName}
                     onRemove={removeSource} 
                     onRename={updateSourceLabel}
-                    onUpdateStream={() => activateSource(source.id)}
+                    onActivate={activateSource}
+                    onDeactivate={deactivateSource}
                   />
                 ))}
               </div>
@@ -152,7 +169,7 @@ const Broadcaster = () => {
                 <div className="space-y-2">
                   <p className="text-xs font-black text-indigo-500/50 uppercase tracking-widest">Persistence</p>
                   <p className="text-sm text-slate-400 leading-relaxed">
-                    Source labels and types are saved. You'll just need to re-activate hardware access when you return.
+                    Source labels and types are saved. Use the eye icon to enable/disable hardware access.
                   </p>
                 </div>
               </div>

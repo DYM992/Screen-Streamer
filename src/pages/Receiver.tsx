@@ -65,14 +65,14 @@ const Receiver = () => {
     ? sources.filter(s => s.id === targetSourceId)
     : sources;
 
-  if (status === 'error') return null; // Keep it clean for OBS
-  if (status === 'connecting') return null; // Keep it clean for OBS
+  if (status === 'error') return null;
+  if (status === 'connecting') return null;
 
   return (
     <div className="fixed inset-0 bg-transparent overflow-hidden">
       <div className="grid grid-cols-1 w-full h-full">
         {displayedSources.map(source => (
-          <div key={source.id} className="relative w-full h-full bg-transparent">
+          <div key={source.id} className={`relative w-full h-full bg-transparent ${source.type === 'audio' ? 'w-0 h-0 overflow-hidden' : ''}`}>
             {source.type === 'video' ? (
               <video 
                 autoPlay 
@@ -83,7 +83,6 @@ const Receiver = () => {
                 className="w-full h-full object-contain bg-transparent"
               />
             ) : (
-              /* Audio only sources render nothing visible to avoid black boxes in OBS */
               <audio 
                 autoPlay 
                 ref={el => { if (el && el.srcObject !== source.stream) el.srcObject = source.stream; }} 
