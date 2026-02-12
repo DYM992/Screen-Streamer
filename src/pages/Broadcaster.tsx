@@ -42,21 +42,14 @@ const Broadcaster = () => {
       setEditingRoomId(oldId);
       return;
     }
-
-    // Move all sources to the new room ID
-    await supabase
-      .from('sources')
-      .update({ room_id: newId })
-      .eq('room_id', oldId);
-
+    
     // Update the room's primary key (id) to the new ID
     await supabase
       .from('rooms')
-      .update({ id: newId })
-      .eq('id', oldId);
+      .update({ id: oldId })
+      .eq('id', newId);
 
     // Update local state so the manager loads the new room
-    setRoomName(newId);
   };
 
   // Handle input change without triggering a load
