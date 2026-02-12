@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Peer from 'peerjs';
+import "./Receiver.css";
 
 interface RemoteSource {
   id: string;
