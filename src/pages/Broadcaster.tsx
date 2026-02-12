@@ -4,7 +4,7 @@ import { useStreamManager } from '@/hooks/useStreamManager';
 import SourceCard from '@/components/SourceCard';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Monitor, Mic, Camera, Trash2, Edit2, Check, ExternalLink, RefreshCw, Eye, EyeOff, LayoutGrid, ArrowLeft, Play, Square, Plus } from "lucide-react";
+import { Monitor, Mic, Camera, Trash2, Edit2, Check, ExternalLink, RefreshCw, Eye, EyeOff, LayoutGrid, ArrowLeft, Play, Square, Plus, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SourceTypeSelector, SourceOption } from "@/components/SourceTypeSelector";
 
