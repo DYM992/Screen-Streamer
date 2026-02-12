@@ -23,7 +23,7 @@ const Index = () => {
 
   const fetchRooms = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
+    const { data: todos, error } = await supabase
       .from('rooms')
       .select('*')
       .order('created_at', { ascending: false });
