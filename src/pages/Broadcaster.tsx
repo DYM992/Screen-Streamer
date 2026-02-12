@@ -45,17 +45,22 @@ const Broadcaster = () => {
       return;
     }
 
-    // 1️⃣ Check if the target room already exists
-    const { data: existingRoom } = await supabase
+    // 1️⃣ Check if the target room already exists (use maybeSingle to avoid 406)
+    const { data: existingRoom, error: existenceError } = await supabase
       .from('rooms')
       .select('id')
       .eq('id', newId)
-      .single();
+      .maybeSingle();
+
+    if (existenceError) {
+      console.error('Error checking room existence:', existenceError);
+      return;
+    }
 
     const roomExists = !!existingRoom;
 
     if (!roomExists) {
-      // Create the new room row first (no duplicate key risk)
+      // Create the new room row first (no duplicate‑key risk)
       const { error: createRoomError } = await supabase
         .from('rooms')
         .insert({ id: newId })
@@ -75,14 +80,14 @@ const Broadcaster = () => {
 
     if (sourceError) {
       console.error('Failed to update sources during rename:', sourceError);
-      // If we created a brand‑new room, clean it up to avoid orphaned rows
+      // Clean up newly created room if we just created it
       if (!roomExists) {
         await supabase.from('rooms').delete().eq('id', newId);
       }
       return;
     }
 
-    // 3️⃣ Delete the old room row (only if it still exists)
+    // 3️⃣ Delete the old room row (if it still exists)
     const { error: deleteRoomError } = await supabase
       .from('rooms')
       .delete()
