@@ -61,12 +61,12 @@ export const useStreamManager = (roomName: string) => {
         }));
         setSources(mappedSources);
 
-        // Auto-activate enabled sources (except video/screen share)
-        mappedSources.forEach(s => {
-          if (s.isEnabled && s.type !== 'video') {
-            activateSource(s.id);
+        // Auto‑activate all enabled sources (including video)
+        for (const src of mappedSources) {
+          if (src.isEnabled) {
+            await activateSource(src.id);
           }
-        });
+        }
       }
     };
 
@@ -182,7 +182,7 @@ export const useStreamManager = (roomName: string) => {
 
   const activateSource = useCallback(async (id: string) => {
     const source = sourcesRef.current.find(s => s.id === id);
-    if (!source) return;
+    if (!source) return false;
 
     try {
       let stream: MediaStream;
@@ -195,16 +195,24 @@ export const useStreamManager = (roomName: string) => {
         });
       }
       setSources(prev => prev.map(s => s.id === id ? { ...s, stream, isActive: true, isEnabled: true } : s));
+      // Persist enabled state
+      if (source.dbId) {
+        await supabase.from('sources').update({ is_enabled: true }).eq('id', source.dbId);
+      }
       return true;
     } catch (err) {
       return false;
     }
   }, []);
 
-  const deactivateSource = useCallback((id: string) => {
+  const deactivateSource = useCallback(async (id: string) => {
     setSources(prev => prev.map(s => {
       if (s.id === id) {
         s.stream?.getTracks().forEach(t => t.stop());
+        // Persist disabled state
+        if (s.dbId) {
+          supabase.from('sources').update({ is_enabled: false }).eq('id', s.dbId);
+        }
         return { ...s, stream: undefined, isActive: false, isEnabled: false };
       }
       return s;
