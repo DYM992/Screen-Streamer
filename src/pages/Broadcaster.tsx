@@ -62,8 +62,10 @@ const Broadcaster = () => {
       .delete()
       .eq('id', oldId);
 
-    // Update local state so the manager loads the new room
+    // Update UI state and URL
     setRoomName(newId);
+    setEditingRoomId(newId);
+    setSearchParams({ room: newId }, { replace: true });
   };
 
   // Handle input change without triggering a load
