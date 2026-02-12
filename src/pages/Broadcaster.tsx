@@ -20,6 +20,7 @@ const Broadcaster = () => {
     sources,
     connections,
     isBroadcasting,
+    isChangingName,
     toggleBroadcasting,
     addSource,
     activateSource,
@@ -130,7 +131,6 @@ const Broadcaster = () => {
                   onClick={commitRoomIdChange}
                   disabled={isBroadcasting}
                   className="h-8 w-8 text-indigo-400 hover:text-white"
-                  title="Rename Room"
                 >
                   Rename
                 </Button>
