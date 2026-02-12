@@ -44,7 +44,19 @@ const Broadcaster = () => {
       setIsEditingRoomId(false);
       return;
     }
-    
+
+    // 1️⃣ Create the new room row first so foreign‑key constraints are satisfied
+    const { error: createRoomError } = await supabase
+      .from('rooms')
+      .insert({ id: newId })
+      .single();
+
+    if (createRoomError) {
+      console.error('Failed to create new room during rename:', createRoomError);
+      return;
+    }
+
+    // 2️⃣ Update all sources to point to the new room id
     const { error: sourceError } = await supabase
       .from('sources')
       .update({ room_id: newId })
@@ -52,20 +64,23 @@ const Broadcaster = () => {
 
     if (sourceError) {
       console.error('Failed to update sources during rename:', sourceError);
+      // Clean up: delete the newly created room to avoid orphaned entries
+      await supabase.from('rooms').delete().eq('id', newId);
       return;
     }
 
-    const { error: roomError } = await supabase
+    // 3️⃣ Delete the old room row
+    const { error: deleteRoomError } = await supabase
       .from('rooms')
-      .update({ id: newId })
+      .delete()
       .eq('id', oldId);
 
-
-    if (roomError) {
-      console.error('Failed to rename room:', roomError);
-      return;
+    if (deleteRoomError) {
+      console.error('Failed to delete old room after rename:', deleteRoomError);
+      // Not fatal – the new room exists and sources point to it
     }
 
+    // 4️⃣ Update local state & URL
     setRoomName(newId);
     setSearchParams({ room: newId }, { replace: true });
     setIsEditingRoomId(false);
