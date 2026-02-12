@@ -1,8 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Monitor, Mic, Trash2, Activity, Edit2, Check, ExternalLink } from "lucide-react";
+import { 
+  Monitor, Mic, Trash2, Edit2, Check, ExternalLink, Settings, 
+  RefreshCw, Volume2, Video
+} from "lucide-react";
+import { 
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter 
+} from "@/components/ui/dialog";
+import { 
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
+} from "@/components/ui/select";
 import { StreamSource } from "@/hooks/useStreamManager";
 import { toast } from "sonner";
 
@@ -11,18 +20,29 @@ interface SourceCardProps {
   roomName: string;
   onRemove: (id: string) => void;
   onRename: (id: string, label: string) => void;
+  onUpdateStream: (id: string, type: 'video' | 'audio', deviceId?: string) => Promise<void>;
 }
 
-const SourceCard = ({ source, roomName, onRemove, onRename }: SourceCardProps) => {
+const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: SourceCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [label, setLabel] = useState(source.label);
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedDevice, setSelectedDevice] = useState<string>("");
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (videoRef.current && source.type === 'video') {
       videoRef.current.srcObject = source.stream;
     }
-  }, [source]);
+  }, [source.stream, source.type]);
+
+  useEffect(() => {
+    if (source.type === 'audio') {
+      navigator.mediaDevices.enumerateDevices().then(d => {
+        setDevices(d.filter(device => device.kind === 'audioinput'));
+      });
+    }
+  }, [source.type]);
 
   const handleRename = () => {
     onRename(source.id, label);
@@ -36,7 +56,7 @@ const SourceCard = ({ source, roomName, onRemove, onRename }: SourceCardProps) =
   };
 
   return (
-    <Card className="overflow-hidden border-2 border-indigo-500/20 bg-slate-900/80 backdrop-blur-xl transition-all hover:border-indigo-500/40">
+    <Card className="overflow-hidden border-2 border-indigo-500/20 bg-slate-900/80 backdrop-blur-xl transition-all hover:border-indigo-500/40 group">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <div className="flex items-center gap-2 flex-1 mr-2">
           {source.type === 'video' ? <Monitor className="w-4 h-4 text-indigo-400" /> : <Mic className="w-4 h-4 text-emerald-400" />}
@@ -53,7 +73,7 @@ const SourceCard = ({ source, roomName, onRemove, onRename }: SourceCardProps) =
               </Button>
             </div>
           ) : (
-            <CardTitle className="text-sm font-bold truncate max-w-[150px]">
+            <CardTitle className="text-sm font-bold truncate max-w-[120px]">
               {source.label}
             </CardTitle>
           )}
@@ -64,6 +84,62 @@ const SourceCard = ({ source, roomName, onRemove, onRename }: SourceCardProps) =
           )}
         </div>
         <div className="flex gap-1">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-white">
+                <Settings className="w-4 h-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-slate-950 border-slate-800 text-white">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-indigo-500" />
+                  Source Settings: {source.label}
+                </DialogTitle>
+              </DialogHeader>
+              
+              <div className="py-6 space-y-6">
+                {source.type === 'audio' ? (
+                  <div className="space-y-3">
+                    <label className="text-xs font-black uppercase text-slate-500 tracking-widest">Select Microphone</label>
+                    <Select onValueChange={setSelectedDevice} defaultValue={selectedDevice}>
+                      <SelectTrigger className="bg-slate-900 border-slate-800">
+                        <SelectValue placeholder="Choose a device..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-slate-800 text-white">
+                        {devices.map(device => (
+                          <SelectItem key={device.deviceId} value={device.deviceId}>
+                            {device.label || `Microphone ${device.deviceId.slice(0, 5)}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      className="w-full bg-indigo-600 hover:bg-indigo-500" 
+                      onClick={() => onUpdateStream(source.id, 'audio', selectedDevice)}
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" /> Update Audio Device
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
+                      <p className="text-sm text-slate-300 leading-relaxed">
+                        To change the captured window or screen, click the button below to re-open the system picker.
+                      </p>
+                    </div>
+                    <Button 
+                      className="w-full bg-indigo-600 hover:bg-indigo-500" 
+                      onClick={() => onUpdateStream(source.id, 'video')}
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" /> Re-select Capture Source
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <Button variant="ghost" size="icon" onClick={copyObsUrl} className="h-8 w-8 text-slate-400 hover:text-indigo-400" title="Copy OBS Source URL">
             <ExternalLink className="w-4 h-4" />
           </Button>
@@ -73,7 +149,7 @@ const SourceCard = ({ source, roomName, onRemove, onRename }: SourceCardProps) =
         </div>
       </CardHeader>
       <CardContent>
-        <div className="relative aspect-video bg-black rounded-xl overflow-hidden group">
+        <div className="relative aspect-video bg-black rounded-xl overflow-hidden">
           {source.type === 'video' ? (
             <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-contain" />
           ) : (

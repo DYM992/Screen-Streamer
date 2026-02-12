@@ -1,21 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useStreamManager } from '@/hooks/useStreamManager';
 import SourceCard from '@/components/SourceCard';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Monitor, Mic, Users, Settings2, LayoutGrid, Info } from "lucide-react";
-import { toast } from "sonner";
+import { Monitor, Mic, Settings2, LayoutGrid, Info } from "lucide-react";
 
 const Broadcaster = () => {
   const [roomName, setRoomName] = useState(`stream-${Math.floor(Math.random() * 1000)}`);
-  const { sources, connections, addScreenSource, addMicSource, updateSourceLabel, removeSource } = useStreamManager(roomName);
+  const { 
+    sources, 
+    connections, 
+    addScreenSource, 
+    addMicSource, 
+    updateSourceLabel, 
+    removeSource,
+    replaceSourceStream 
+  } = useStreamManager(roomName);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 selection:bg-indigo-500/30">
       <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-10">
         
-        {/* Header Section */}
         <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
@@ -48,7 +53,6 @@ const Broadcaster = () => {
         </header>
 
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-10">
-          {/* Main Content */}
           <div className="xl:col-span-3 space-y-8">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold flex items-center gap-3">
@@ -86,13 +90,13 @@ const Broadcaster = () => {
                     roomName={roomName}
                     onRemove={removeSource} 
                     onRename={updateSourceLabel}
+                    onUpdateStream={replaceSourceStream}
                   />
                 ))}
               </div>
             )}
           </div>
 
-          {/* Sidebar Info */}
           <div className="space-y-6">
             <div className="bg-indigo-600/5 border border-indigo-500/10 rounded-[2rem] p-8 space-y-6">
               <div className="flex items-center gap-3 text-indigo-400">

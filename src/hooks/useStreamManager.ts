@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import Peer, { MediaConnection } from 'peerjs';
+import Peer from 'peerjs';
 import { toast } from "sonner";
 
 export interface StreamSource {
@@ -15,7 +15,6 @@ export const useStreamManager = (peerId?: string) => {
   const [connections, setConnections] = useState<Set<string>>(new Set());
   const sourcesRef = useRef<StreamSource[]>([]);
 
-  // Keep ref in sync for the peer event handlers
   useEffect(() => {
     sourcesRef.current = sources;
   }, [sources]);
@@ -26,10 +25,6 @@ export const useStreamManager = (peerId?: string) => {
       config: {
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
       }
-    });
-
-    newPeer.on('open', (id) => {
-      console.log('Broadcaster active:', id);
     });
 
     newPeer.on('connection', (conn) => {
@@ -44,7 +39,6 @@ export const useStreamManager = (peerId?: string) => {
     });
 
     newPeer.on('call', (call) => {
-      // When a receiver calls, send all current sources
       sourcesRef.current.forEach(source => {
         newPeer.call(call.peer, source.stream, {
           metadata: { id: source.id, label: source.label, type: source.type }
@@ -53,10 +47,7 @@ export const useStreamManager = (peerId?: string) => {
     });
 
     setPeer(newPeer);
-
-    return () => {
-      newPeer.destroy();
-    };
+    return () => newPeer.destroy();
   }, [peerId]);
 
   const addScreenSource = useCallback(async () => {
@@ -91,9 +82,11 @@ export const useStreamManager = (peerId?: string) => {
     }
   }, []);
 
-  const addMicSource = useCallback(async () => {
+  const addMicSource = useCallback(async (deviceId?: string) => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: deviceId ? { deviceId: { exact: deviceId } } : true 
+      });
       const id = `a-mic-${Math.random().toString(36).substr(2, 5)}`;
       const newSource: StreamSource = {
         id,
@@ -104,6 +97,31 @@ export const useStreamManager = (peerId?: string) => {
       setSources(prev => [...prev, newSource]);
     } catch (err: any) {
       toast.error("Microphone access denied");
+    }
+  }, []);
+
+  const replaceSourceStream = useCallback(async (id: string, type: 'video' | 'audio', deviceId?: string) => {
+    try {
+      let newStream: MediaStream;
+      if (type === 'video') {
+        newStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 60 }, audio: true });
+      } else {
+        newStream = await navigator.mediaDevices.getUserMedia({ 
+          audio: deviceId ? { deviceId: { exact: deviceId } } : true 
+        });
+      }
+
+      setSources(prev => prev.map(s => {
+        if (s.id === id) {
+          s.stream.getTracks().forEach(t => t.stop());
+          return { ...s, stream: newStream };
+        }
+        return s;
+      }));
+      
+      toast.success("Source updated successfully");
+    } catch (err) {
+      toast.error("Failed to update source");
     }
   }, []);
 
@@ -125,6 +143,7 @@ export const useStreamManager = (peerId?: string) => {
     connections: connections.size,
     addScreenSource,
     addMicSource,
+    replaceSourceStream,
     updateSourceLabel,
     removeSource
   };
