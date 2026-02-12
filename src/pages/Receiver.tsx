@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 import Peer from 'peerjs';
 
 interface RemoteSource {
@@ -10,6 +12,7 @@ interface RemoteSource {
 }
 
 const Receiver = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const room = searchParams.get('room');
   const targetSourceId = searchParams.get('sourceId');
@@ -28,21 +31,15 @@ const Receiver = () => {
 
     peer.on('open', () => {
       setStatus('connected');
-      
-      // Register call listener BEFORE initiating the handshake
       peer.on('call', (incomingCall) => {
         incomingCall.answer();
-        
         incomingCall.on('stream', (remoteStream) => {
-          // Apply jitter buffer hint to the receivers of this specific call
-          // @ts-ignore - Accessing internal peerConnection
+          // @ts-ignore
           const pc = incomingCall.peerConnection as RTCPeerConnection;
           if (pc) {
             pc.getReceivers().forEach(receiver => {
-              // @ts-ignore - playoutDelayHint is a newer WebRTC feature
-              if ('playoutDelayHint' in receiver) {
-                receiver.playoutDelayHint = 0.1; 
-              }
+              // @ts-ignore
+              if ('playoutDelayHint' in receiver) receiver.playoutDelayHint = 0.1; 
             });
           }
 
@@ -60,16 +57,10 @@ const Receiver = () => {
           });
         });
       });
-
-      // Initiate handshake with broadcaster
       peer.call(room, new MediaStream()); 
     });
 
-    peer.on('error', (err) => {
-      console.error('Peer error:', err);
-      setStatus('error');
-    });
-
+    peer.on('error', () => setStatus('error'));
     return () => peer.destroy();
   }, [room]);
 
@@ -77,11 +68,35 @@ const Receiver = () => {
     ? sources.filter(s => s.id === targetSourceId)
     : sources;
 
-  if (status === 'error') return <div className="bg-black text-red-500 p-4">Error: Connection failed. Check Room ID.</div>;
-  if (status === 'connecting') return <div className="bg-black text-white p-4">Connecting to {room}...</div>;
+  if (status === 'error') return (
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4">
+      <p className="text-red-500 font-bold">Connection failed. Check Room ID.</p>
+      <Button variant="outline" onClick={() => navigate('/')} className="border-slate-800 text-white">
+        <ArrowLeft className="w-4 h-4 mr-2" /> Back to Home
+      </Button>
+    </div>
+  );
+
+  if (status === 'connecting') return (
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4">
+      <p className="text-white animate-pulse">Connecting to {room}...</p>
+      <Button variant="ghost" onClick={() => navigate('/')} className="text-slate-500">Cancel</Button>
+    </div>
+  );
 
   return (
-    <div className="fixed inset-0 bg-black overflow-hidden">
+    <div className="fixed inset-0 bg-black overflow-hidden group">
+      <div className="absolute top-4 left-4 z-50 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Button 
+          variant="secondary" 
+          size="sm" 
+          onClick={() => navigate('/')}
+          className="bg-slate-900/80 backdrop-blur-md border border-slate-800 text-white hover:bg-slate-800"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" /> Exit Receiver
+        </Button>
+      </div>
+
       {displayedSources.length === 0 && (
         <div className="flex items-center justify-center h-full text-slate-700 text-xs uppercase tracking-widest">
           Waiting for sources from {room}...
@@ -93,30 +108,12 @@ const Receiver = () => {
           <div key={source.id} className="relative w-full h-full bg-black">
             {source.type === 'video' ? (
               <video 
-                autoPlay 
-                playsInline 
-                muted
-                controls={false}
-                disablePictureInPicture
-                disableRemotePlayback
-                ref={el => { 
-                  if (el && el.srcObject !== source.stream) {
-                    el.srcObject = source.stream;
-                    el.play().catch(console.error);
-                  }
-                }}
+                autoPlay playsInline muted controls={false}
+                ref={el => { if (el && el.srcObject !== source.stream) el.srcObject = source.stream; }}
                 className="w-full h-full object-contain"
               />
             ) : (
-              <audio 
-                autoPlay 
-                ref={el => { 
-                  if (el && el.srcObject !== source.stream) {
-                    el.srcObject = source.stream;
-                    el.play().catch(console.error);
-                  }
-                }}
-              />
+              <audio autoPlay ref={el => { if (el && el.srcObject !== source.stream) el.srcObject = source.stream; }} />
             )}
           </div>
         ))}

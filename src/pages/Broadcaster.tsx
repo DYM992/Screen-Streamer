@@ -1,17 +1,20 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useStreamManager } from '@/hooks/useStreamManager';
 import SourceCard from '@/components/SourceCard';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Monitor, Mic, Settings2, LayoutGrid, Info } from "lucide-react";
+import { Monitor, Mic, Camera, LayoutGrid, Info, ArrowLeft } from "lucide-react";
 
 const Broadcaster = () => {
+  const navigate = useNavigate();
   const [roomName, setRoomName] = useState(`stream-${Math.floor(Math.random() * 1000)}`);
   const { 
     sources, 
     connections, 
     addScreenSource, 
     addMicSource, 
+    addCameraSource,
     updateSourceLabel, 
     removeSource,
     replaceSourceStream 
@@ -22,16 +25,21 @@ const Broadcaster = () => {
       <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-10">
         
         <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
-          <div className="space-y-2">
+          <div className="space-y-4">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate('/')}
+              className="text-slate-400 hover:text-white -ml-2"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" /> Back to Dashboard
+            </Button>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
                 <LayoutGrid className="text-white w-6 h-6" />
               </div>
-              <h1 className="text-4xl font-black tracking-tight">StreamSync<span className="text-indigo-500">.</span></h1>
+              <h1 className="text-4xl font-black tracking-tight">Broadcaster<span className="text-indigo-500">.</span></h1>
             </div>
-            <p className="text-slate-400 font-medium max-w-md">
-              Low-latency multi-source broadcasting for professional OBS workflows.
-            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
@@ -54,32 +62,30 @@ const Broadcaster = () => {
 
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-10">
           <div className="xl:col-span-3 space-y-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <h2 className="text-2xl font-bold flex items-center gap-3">
                 Live Sources
                 <span className="text-sm bg-slate-900 text-slate-400 px-3 py-1 rounded-full border border-slate-800">
                   {sources.length}
                 </span>
               </h2>
-              <div className="flex gap-3">
-                <Button onClick={() => addScreenSource()} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl px-6 h-12">
-                  <Monitor className="w-4 h-4 mr-2" /> Add Screen
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => addScreenSource()} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl h-11">
+                  <Monitor className="w-4 h-4 mr-2" /> Screen
                 </Button>
-                <Button onClick={() => addMicSource()} variant="outline" className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl px-6 h-12">
-                  <Mic className="w-4 h-4 mr-2" /> Add Mic
+                <Button onClick={() => addCameraSource()} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl h-11">
+                  <Camera className="w-4 h-4 mr-2" /> Camera
+                </Button>
+                <Button onClick={() => addMicSource()} variant="outline" className="border-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl h-11">
+                  <Mic className="w-4 h-4 mr-2" /> Mic
                 </Button>
               </div>
             </div>
 
             {sources.length === 0 ? (
               <div className="aspect-[21/9] border-2 border-dashed border-slate-800 rounded-[2rem] flex flex-col items-center justify-center text-slate-500 gap-6 bg-slate-900/10">
-                <div className="w-20 h-20 bg-slate-900 rounded-3xl flex items-center justify-center rotate-3">
-                  <Settings2 className="w-10 h-10 opacity-20" />
-                </div>
-                <div className="text-center space-y-1">
-                  <p className="text-xl font-bold text-slate-300">Ready to broadcast</p>
-                  <p className="text-sm text-slate-500">Add your first source to generate receiver links.</p>
-                </div>
+                <p className="text-xl font-bold text-slate-300">Ready to broadcast</p>
+                <p className="text-sm text-slate-500">Add your first source to generate receiver links.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -105,15 +111,15 @@ const Broadcaster = () => {
               </div>
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <p className="text-xs font-black text-indigo-500/50 uppercase tracking-widest">OBS Separation</p>
+                  <p className="text-xs font-black text-indigo-500/50 uppercase tracking-widest">Persistence</p>
                   <p className="text-sm text-slate-400 leading-relaxed">
-                    Click the <span className="text-slate-200">link icon</span> on any source to copy a unique URL. Add each as a separate Browser Source in OBS to mix them individually.
+                    Your room configuration is saved automatically. Re-entering this Room ID will restore your source labels and setup.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-xs font-black text-indigo-500/50 uppercase tracking-widest">Audio Quality</p>
+                  <p className="text-xs font-black text-indigo-500/50 uppercase tracking-widest">OBS Integration</p>
                   <p className="text-sm text-slate-400 leading-relaxed">
-                    Enable "Control audio via OBS" in the Browser Source properties to use OBS's built-in filters and mixers.
+                    Use the link icon on each source to add them as individual Browser Sources in OBS for maximum control.
                   </p>
                 </div>
               </div>

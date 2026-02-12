@@ -5,12 +5,13 @@ import { toast } from "sonner";
 export interface StreamSource {
   id: string;
   label: string;
-  type: 'video' | 'audio';
+  type: 'video' | 'audio' | 'camera';
   stream: MediaStream;
   scaleFactor?: number;
+  deviceId?: string;
 }
 
-export const useStreamManager = (peerId?: string) => {
+export const useStreamManager = (roomName: string) => {
   const [peer, setPeer] = useState<Peer | null>(null);
   const [sources, setSources] = useState<StreamSource[]>([]);
   const [connections, setConnections] = useState<Set<string>>(new Set());
@@ -18,7 +19,23 @@ export const useStreamManager = (peerId?: string) => {
 
   useEffect(() => {
     sourcesRef.current = sources;
-  }, [sources]);
+    // Save configuration to localStorage (metadata only)
+    if (roomName) {
+      const metadata = sources.map(s => ({
+        id: s.id,
+        label: s.label,
+        type: s.type,
+        deviceId: s.deviceId
+      }));
+      localStorage.setItem(`room_${roomName}`, JSON.stringify(metadata));
+      
+      // Update global rooms list for dashboard
+      const rooms = JSON.parse(localStorage.getItem('streamsync_rooms') || '[]');
+      if (!rooms.includes(roomName)) {
+        localStorage.setItem('streamsync_rooms', JSON.stringify([roomName, ...rooms].slice(0, 5)));
+      }
+    }
+  }, [sources, roomName]);
 
   const updateEncodingParameters = useCallback((mediaCall: any, source: StreamSource) => {
     const applyParams = () => {
@@ -38,17 +55,12 @@ export const useStreamManager = (peerId?: string) => {
           params.degradationPreference = 'maintain-framerate';
           params.encodings[0].maxBitrate = 8000000;
           params.encodings[0].maxFramerate = 60;
-          params.encodings[0].priority = 'high';
-          params.encodings[0].networkPriority = 'high';
           
-          sender.setParameters(params).catch(() => {
-            // Silently fail if parameters can't be set yet
-          });
+          sender.setParameters(params).catch(() => {});
         }
       });
     };
 
-    // Wait for the peer connection to be available and stable
     const checkInterval = setInterval(() => {
       // @ts-ignore
       const pc = mediaCall.peerConnection as RTCPeerConnection;
@@ -57,22 +69,16 @@ export const useStreamManager = (peerId?: string) => {
         clearInterval(checkInterval);
       }
     }, 500);
-
-    // Safety timeout
     setTimeout(() => clearInterval(checkInterval), 10000);
   }, []);
 
   useEffect(() => {
-    if (!peerId) return;
+    if (!roomName) return;
 
-    const newPeer = new Peer(peerId, {
+    const newPeer = new Peer(roomName, {
       debug: 1,
       config: {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
-        ],
-        iceTransportPolicy: 'all',
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
       }
     });
 
@@ -89,10 +95,9 @@ export const useStreamManager = (peerId?: string) => {
 
     newPeer.on('call', (call) => {
       call.answer();
-      
       sourcesRef.current.forEach(source => {
         const mediaCall = newPeer.call(call.peer, source.stream, {
-          metadata: { id: source.id, label: source.label, type: source.type }
+          metadata: { id: source.id, label: source.label, type: source.type === 'camera' ? 'video' : source.type }
         });
         updateEncodingParameters(mediaCall, source);
       });
@@ -100,112 +105,76 @@ export const useStreamManager = (peerId?: string) => {
 
     setPeer(newPeer);
     return () => newPeer.destroy();
-  }, [peerId, updateEncodingParameters]);
+  }, [roomName, updateEncodingParameters]);
 
   const optimizeTrack = (track: MediaStreamTrack) => {
     if (track.kind === 'video') {
       // @ts-ignore
       if ('contentHint' in track) track.contentHint = 'motion';
-      track.applyConstraints({ frameRate: { ideal: 60 } }).catch(console.error);
     }
   };
 
   const addScreenSource = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: { frameRate: { ideal: 60 }, cursor: 'always' },
-        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+        video: { frameRate: { ideal: 60 } },
+        audio: true
       });
-      
       stream.getTracks().forEach(optimizeTrack);
-      
       const id = `v-${Math.random().toString(36).substr(2, 5)}`;
-      const newSource: StreamSource = {
-        id,
-        label: "Screen Capture",
-        type: 'video',
-        stream,
-        scaleFactor: 1.0
-      };
+      setSources(prev => [...prev, { id, label: "Screen Capture", type: 'video', stream, scaleFactor: 1.5 }]);
+      toast.success("Screen added");
+    } catch (err) {}
+  }, []);
 
-      setSources(prev => [...prev, newSource]);
-      toast.success("Optimized screen source added");
-
-      if (stream.getAudioTracks().length > 0) {
-        const audioId = `a-sys-${Math.random().toString(36).substr(2, 5)}`;
-        const audioSource: StreamSource = {
-          id: audioId,
-          label: "System Audio",
-          type: 'audio',
-          stream: new MediaStream(stream.getAudioTracks())
-        };
-        setSources(prev => [...prev, audioSource]);
-      }
-    } catch (err: any) {
-      if (err.name !== 'NotAllowedError') toast.error("Capture failed");
+  const addCameraSource = useCallback(async (deviceId?: string) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { deviceId: deviceId ? { exact: deviceId } : undefined, frameRate: { ideal: 30 } },
+        audio: false 
+      });
+      const id = `c-${Math.random().toString(36).substr(2, 5)}`;
+      setSources(prev => [...prev, { id, label: "Camera", type: 'camera', stream, deviceId }]);
+      toast.success("Camera added");
+    } catch (err) {
+      toast.error("Camera access failed");
     }
   }, []);
 
   const addMicSource = useCallback(async (deviceId?: string) => {
     try {
-      const actualDeviceId = typeof deviceId === 'string' ? deviceId : undefined;
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          deviceId: actualDeviceId ? { exact: actualDeviceId } : undefined,
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false
-        } 
+        audio: { deviceId: deviceId ? { exact: deviceId } : undefined } 
       });
-      
-      const id = `a-mic-${Math.random().toString(36).substr(2, 5)}`;
-      const newSource: StreamSource = {
-        id,
-        label: "Microphone",
-        type: 'audio',
-        stream
-      };
-      setSources(prev => [...prev, newSource]);
+      const id = `a-${Math.random().toString(36).substr(2, 5)}`;
+      setSources(prev => [...prev, { id, label: "Microphone", type: 'audio', stream, deviceId }]);
       toast.success("Microphone added");
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Mic access failed");
     }
   }, []);
 
-  const replaceSourceStream = useCallback(async (id: string, type: 'video' | 'audio', deviceId?: string) => {
+  const replaceSourceStream = useCallback(async (id: string, type: 'video' | 'audio' | 'camera', deviceId?: string) => {
     try {
-      const actualDeviceId = typeof deviceId === 'string' ? deviceId : undefined;
       let newStream: MediaStream;
-      
       if (type === 'video') {
-        newStream = await navigator.mediaDevices.getDisplayMedia({ 
-          video: { frameRate: { ideal: 60 } }, 
-          audio: true 
-        });
+        newStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      } else if (type === 'camera') {
+        newStream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: deviceId ? { exact: deviceId } : undefined } });
       } else {
-        newStream = await navigator.mediaDevices.getUserMedia({ 
-          audio: {
-            deviceId: actualDeviceId ? { exact: actualDeviceId } : undefined,
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: false
-          }
-        });
+        newStream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: deviceId ? { exact: deviceId } : undefined } });
       }
-
       newStream.getTracks().forEach(optimizeTrack);
-
       setSources(prev => prev.map(s => {
         if (s.id === id) {
           s.stream.getTracks().forEach(t => t.stop());
-          return { ...s, stream: newStream };
+          return { ...s, stream: newStream, deviceId };
         }
         return s;
       }));
-      
       toast.success("Source updated");
-    } catch (err: any) {
-      toast.error("Failed to update source");
+    } catch (err) {
+      toast.error("Update failed");
     }
   }, []);
 
@@ -219,17 +188,7 @@ export const useStreamManager = (peerId?: string) => {
       if (source) source.stream.getTracks().forEach(t => t.stop());
       return prev.filter(s => s.id !== id);
     });
-    toast.info("Source removed");
   }, []);
 
-  return {
-    peer,
-    sources,
-    connections: connections.size,
-    addScreenSource,
-    addMicSource,
-    replaceSourceStream,
-    updateSourceLabel,
-    removeSource
-  };
+  return { sources, connections: connections.size, addScreenSource, addCameraSource, addMicSource, replaceSourceStream, updateSourceLabel, removeSource };
 };

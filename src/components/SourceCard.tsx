@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
-  Monitor, Mic, Trash2, Edit2, Check, ExternalLink, Settings, 
+  Monitor, Mic, Camera, Trash2, Edit2, Check, ExternalLink, Settings, 
   RefreshCw
 } from "lucide-react";
 import { 
@@ -20,26 +20,28 @@ interface SourceCardProps {
   roomName: string;
   onRemove: (id: string) => void;
   onRename: (id: string, label: string) => void;
-  onUpdateStream: (id: string, type: 'video' | 'audio', deviceId?: string) => Promise<void>;
+  onUpdateStream: (id: string, type: 'video' | 'audio' | 'camera', deviceId?: string) => Promise<void>;
 }
 
 const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: SourceCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [label, setLabel] = useState(source.label);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [selectedDevice, setSelectedDevice] = useState<string>("");
+  const [selectedDevice, setSelectedDevice] = useState<string>(source.deviceId || "");
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (videoRef.current && source.type === 'video') {
+    if (videoRef.current && (source.type === 'video' || source.type === 'camera')) {
       videoRef.current.srcObject = source.stream;
     }
   }, [source.stream, source.type]);
 
   useEffect(() => {
-    if (source.type === 'audio') {
+    if (source.type === 'audio' || source.type === 'camera') {
       navigator.mediaDevices.enumerateDevices().then(d => {
-        setDevices(d.filter(device => device.kind === 'audioinput'));
+        setDevices(d.filter(device => 
+          source.type === 'audio' ? device.kind === 'audioinput' : device.kind === 'videoinput'
+        ));
       });
     }
   }, [source.type]);
@@ -55,11 +57,17 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: So
     toast.success(`OBS URL for ${source.label} copied!`);
   };
 
+  const getIcon = () => {
+    if (source.type === 'video') return <Monitor className="w-4 h-4 text-indigo-400" />;
+    if (source.type === 'camera') return <Camera className="w-4 h-4 text-pink-400" />;
+    return <Mic className="w-4 h-4 text-emerald-400" />;
+  };
+
   return (
     <Card className="overflow-hidden border-2 border-indigo-500/20 bg-slate-900/80 backdrop-blur-xl transition-all hover:border-indigo-500/40 group">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <div className="flex items-center gap-2 flex-1 mr-2">
-          {source.type === 'video' ? <Monitor className="w-4 h-4 text-indigo-400" /> : <Mic className="w-4 h-4 text-emerald-400" />}
+          {getIcon()}
           {isEditing ? (
             <div className="flex gap-1 flex-1">
               <Input 
@@ -99,9 +107,9 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: So
               </DialogHeader>
               
               <div className="py-6 space-y-6">
-                {source.type === 'audio' ? (
+                {source.type !== 'video' ? (
                   <div className="space-y-3">
-                    <label className="text-xs font-black uppercase text-slate-400 tracking-widest">Select Microphone</label>
+                    <label className="text-xs font-black uppercase text-slate-400 tracking-widest">Select Device</label>
                     <Select onValueChange={setSelectedDevice} defaultValue={selectedDevice}>
                       <SelectTrigger className="bg-slate-900 border-slate-800 text-white">
                         <SelectValue placeholder="Choose a device..." />
@@ -109,25 +117,20 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: So
                       <SelectContent className="bg-slate-900 border-slate-800 text-white">
                         {devices.map(device => (
                           <SelectItem key={device.deviceId} value={device.deviceId}>
-                            {device.label || `Microphone ${device.deviceId.slice(0, 5)}`}
+                            {device.label || `${source.type === 'audio' ? 'Mic' : 'Camera'} ${device.deviceId.slice(0, 5)}`}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <Button 
                       className="w-full bg-indigo-600 hover:bg-indigo-500 text-white" 
-                      onClick={() => onUpdateStream(source.id, 'audio', selectedDevice)}
+                      onClick={() => onUpdateStream(source.id, source.type, selectedDevice)}
                     >
-                      <RefreshCw className="w-4 h-4 mr-2" /> Update Audio Device
+                      <RefreshCw className="w-4 h-4 mr-2" /> Update Device
                     </Button>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-                      <p className="text-sm text-slate-300 leading-relaxed">
-                        To change the captured window or screen, click the button below to re-open the system picker.
-                      </p>
-                    </div>
                     <Button 
                       className="w-full bg-indigo-600 hover:bg-indigo-500 text-white" 
                       onClick={() => onUpdateStream(source.id, 'video')}
@@ -150,7 +153,7 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: So
       </CardHeader>
       <CardContent>
         <div className="relative aspect-video bg-black rounded-xl overflow-hidden">
-          {source.type === 'video' ? (
+          {source.type !== 'audio' ? (
             <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-contain" />
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-3 bg-slate-950/50">
@@ -162,13 +165,6 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: So
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Audio Active</span>
             </div>
           )}
-        </div>
-        <div className="mt-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Streaming</span>
-          </div>
-          <code className="text-[9px] text-slate-400 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">{source.id}</code>
         </div>
       </CardContent>
     </Card>
