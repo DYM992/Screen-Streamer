@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Monitor, Mic, Camera, LayoutGrid, Info, ArrowLeft, Play, Square, RefreshCw, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Broadcaster = () => {
   const navigate = useNavigate();
@@ -44,28 +45,44 @@ const Broadcaster = () => {
     }
 
     // Ensure the new room exists (insert if missing)
-    await supabase
+    const { error: insertError } = await supabase
       .from('rooms')
       .insert({ id: newId })
       .onConflict('id')
       .ignore();
 
+    if (insertError) {
+      toast.error(`Failed to create new room: ${insertError.message}`);
+      return;
+    }
+
     // Move all sources to the new room ID
-    await supabase
+    const { error: updateSourcesError } = await supabase
       .from('sources')
       .update({ room_id: newId })
       .eq('room_id', oldId);
 
+    if (updateSourcesError) {
+      toast.error(`Failed to move sources: ${updateSourcesError.message}`);
+      return;
+    }
+
     // Delete the old room entry so only the new one remains
-    await supabase
+    const { error: deleteRoomError } = await supabase
       .from('rooms')
       .delete()
       .eq('id', oldId);
+
+    if (deleteRoomError) {
+      toast.error(`Failed to delete old room: ${deleteRoomError.message}`);
+      return;
+    }
 
     // Update UI state and URL
     setRoomName(newId);
     setEditingRoomId(newId);
     setSearchParams({ room: newId }, { replace: true });
+    toast.success(`Room ID renamed to ${newId}`);
   };
 
   // Handle input change without triggering a load
