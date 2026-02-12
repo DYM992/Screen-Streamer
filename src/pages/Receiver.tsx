@@ -65,7 +65,7 @@ const Receiver = () => {
   if (status === 'connecting') return null;
 
   return (
-    <div className="fixed inset-0 bg-black flex items-center justify-center">
+    <div className="fixed inset-0 bg-transparent flex items-center justify-center">
       {displayedSources.map(source => (
         <div key={source.id} className={`relative ${source.type === 'audio' ? 'hidden' : ''} w-full h-full`}>
           {source.type === 'audio' ? (
