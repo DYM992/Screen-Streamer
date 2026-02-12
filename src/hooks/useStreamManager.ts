@@ -5,11 +5,9 @@ import { supabase } from "@/utils/supabase/client";
 
 export interface StreamSource {
   id: string;
-  dbId?: string;
   label: string;
   type: 'video' | 'audio' | 'camera';
   stream?: MediaStream;
-  deviceId?: string;
   isActive: boolean;
   isEnabled: boolean;
 }
@@ -19,87 +17,124 @@ export const useStreamManager = (roomName: string) => {
   const [sources, setSources] = useState<StreamSource[]>([]);
   const [connections, setConnections] = useState<Set<string>>(new Set());
   const [isBroadcasting, setIsBroadcasting] = useState(false);
+  
   const sourcesRef = useRef<StreamSource[]>([]);
+  const peerRef = useRef<Peer | null>(null);
 
-  // Sync ref with state
+  // Keep refs in sync for cleanup/exit logic
   useEffect(() => {
     sourcesRef.current = sources;
   }, [sources]);
 
-  // Load room and sources from Supabase
+  useEffect(() => {
+    peerRef.current = peer;
+  }, [peer]);
+
+  // Function to save current state to Supabase
+  const saveToDatabase = useCallback(async () => {
+    if (!roomName) return;
+
+    try {
+      // 1. Ensure room exists
+      await supabase.from('rooms').upsert({ id: roomName }, { onConflict: 'id' });
+
+      // 2. Prepare sources for sync
+      // We delete existing sources for this room and re-insert the current state
+      // to ensure the DB perfectly matches the local session on exit.
+      await supabase.from('sources').delete().eq('room_id', roomName);
+
+      if (sourcesRef.current.length > 0) {
+        const sourcesToInsert = sourcesRef.current.map(s => ({
+          room_id: roomName,
+          label: s.label,
+          type: s.type,
+          is_enabled: s.isEnabled
+        }));
+
+        await supabase.from('sources').insert(sourcesToInsert);
+      }
+
+      // 3. Update thumbnail if we have an active video
+      const videoSource = sourcesRef.current.find(s => s.isActive && (s.type === 'video' || s.type === 'camera'));
+      if (videoSource?.stream) {
+        const canvas = document.createElement('canvas');
+        const video = document.createElement('video');
+        video.srcObject = videoSource.stream;
+        
+        await new Promise((resolve) => {
+          video.onloadedmetadata = () => {
+            video.play();
+            canvas.width = 480;
+            canvas.height = 270;
+            const ctx = canvas.getContext('2d');
+            setTimeout(() => {
+              ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+              supabase.from('rooms').update({ thumbnail: dataUrl }).eq('id', roomName).then(resolve);
+            }, 100);
+          };
+        });
+      }
+    } catch (err) {
+      console.error("Failed to save room state on exit", err);
+    }
+  }, [roomName]);
+
+  // Cleanup and Save on Exit
+  useEffect(() => {
+    const handleExit = () => {
+      // Stop all streams
+      sourcesRef.current.forEach(s => {
+        s.stream?.getTracks().forEach(t => t.stop());
+      });
+
+      // Destroy peer
+      if (peerRef.current) {
+        peerRef.current.destroy();
+      }
+
+      // Save state (using sync XHR or beacon if possible, but standard async might work in some browsers)
+      saveToDatabase();
+    };
+
+    window.addEventListener('beforeunload', handleExit);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleExit);
+      handleExit();
+    };
+  }, [saveToDatabase]);
+
+  // Initial Load
   useEffect(() => {
     const loadRoom = async () => {
       if (!roomName) return;
 
-      // Ensure room exists
-      const { data: room } = await supabase
-        .from('rooms')
-        .select('*')
-        .eq('id', roomName)
-        .single();
-
-      if (!room) {
-        await supabase.from('rooms').insert({ id: roomName });
-      }
-
-      // Load sources
       const { data: dbSources } = await supabase
         .from('sources')
         .select('*')
         .eq('room_id', roomName);
 
-      if (dbSources) {
+      if (dbSources && dbSources.length > 0) {
         const mappedSources: StreamSource[] = dbSources.map(s => ({
-          id: s.id,
-          dbId: s.id,
+          id: s.id, // Use DB ID as local ID
           label: s.label,
           type: s.type as any,
-          deviceId: s.device_id,
           isEnabled: s.is_enabled,
           isActive: false
         }));
         setSources(mappedSources);
 
-        // Auto-activate enabled sources
+        // Auto-activate non-screen sources
         mappedSources.forEach(s => {
-          if (s.isEnabled) {
-            // We can't auto-activate Screen Share (video) without user gesture
-            if (s.type !== 'video') {
-              activateSource(s.id);
-            }
+          if (s.isEnabled && s.type !== 'video') {
+            activateSource(s.id);
           }
         });
       }
     };
 
     loadRoom();
-  }, [roomName]);
-
-  const captureThumbnail = useCallback(async () => {
-    const videoSource = sourcesRef.current.find(s => s.isActive && (s.type === 'video' || s.type === 'camera'));
-    if (!videoSource?.stream) return;
-
-    const canvas = document.createElement('canvas');
-    const video = document.createElement('video');
-    video.srcObject = videoSource.stream;
-    
-    video.onloadedmetadata = async () => {
-      video.play();
-      canvas.width = 480;
-      canvas.height = 270;
-      const ctx = canvas.getContext('2d');
-      setTimeout(async () => {
-        ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-        
-        await supabase
-          .from('rooms')
-          .update({ thumbnail: dataUrl })
-          .eq('id', roomName);
-          
-        video.srcObject = null;
-      }, 500);
-    };
   }, [roomName]);
 
   const toggleBroadcasting = useCallback(() => {
@@ -118,7 +153,6 @@ export const useStreamManager = (roomName: string) => {
       newPeer.on('open', () => {
         setIsBroadcasting(true);
         toast.success("Broadcasting live!");
-        setTimeout(captureThumbnail, 3000);
       });
 
       newPeer.on('connection', (conn) => {
@@ -136,10 +170,13 @@ export const useStreamManager = (roomName: string) => {
         });
       });
 
-      newPeer.on('error', () => setIsBroadcasting(false));
+      newPeer.on('error', (err) => {
+        console.error("Peer error:", err);
+        setIsBroadcasting(false);
+      });
       setPeer(newPeer);
     }
-  }, [isBroadcasting, roomName, peer, captureThumbnail]);
+  }, [isBroadcasting, roomName, peer]);
 
   const activateSource = useCallback(async (id: string) => {
     const source = sourcesRef.current.find(s => s.id === id);
@@ -157,21 +194,15 @@ export const useStreamManager = (roomName: string) => {
       }
 
       setSources(prev => prev.map(s => s.id === id ? { ...s, stream, isActive: true, isEnabled: true } : s));
-      
-      // Sync enabled state to DB
-      await supabase
-        .from('sources')
-        .update({ is_enabled: true })
-        .eq('id', id);
-
       return true;
     } catch (err) {
       console.error("Activation failed", err);
+      toast.error(`Failed to access ${source.type}`);
       return false;
     }
   }, []);
 
-  const deactivateSource = useCallback(async (id: string) => {
+  const deactivateSource = useCallback((id: string) => {
     setSources(prev => prev.map(s => {
       if (s.id === id) {
         s.stream?.getTracks().forEach(t => t.stop());
@@ -179,56 +210,33 @@ export const useStreamManager = (roomName: string) => {
       }
       return s;
     }));
-
-    await supabase
-      .from('sources')
-      .update({ is_enabled: false })
-      .eq('id', id);
   }, []);
 
-  const addSource = useCallback(async (type: 'video' | 'audio' | 'camera') => {
+  const addSource = useCallback((type: 'video' | 'audio' | 'camera') => {
     const label = type.charAt(0).toUpperCase() + type.slice(1);
-    
-    const { data, error } = await supabase
-      .from('sources')
-      .insert({
-        room_id: roomName,
-        label,
-        type,
-        is_enabled: true
-      })
-      .select()
-      .single();
-
-    if (error) {
-      toast.error("Failed to add source to database");
-      return;
-    }
+    const tempId = crypto.randomUUID();
 
     const newSource: StreamSource = {
-      id: data.id,
-      dbId: data.id,
-      label: data.label,
-      type: data.type as any,
+      id: tempId,
+      label,
+      type,
       isActive: false,
       isEnabled: true
     };
 
     setSources(prev => [...prev, newSource]);
-    setTimeout(() => activateSource(newSource.id), 50);
-  }, [roomName, activateSource]);
+    // Small delay to ensure state is updated before activation
+    setTimeout(() => activateSource(tempId), 50);
+  }, [activateSource]);
 
-  const removeSource = useCallback(async (id: string) => {
+  const removeSource = useCallback((id: string) => {
     const source = sourcesRef.current.find(s => s.id === id);
     if (source?.stream) source.stream.getTracks().forEach(t => t.stop());
-    
     setSources(prev => prev.filter(s => s.id !== id));
-    await supabase.from('sources').delete().eq('id', id);
   }, []);
 
-  const updateSourceLabel = useCallback(async (id: string, label: string) => {
+  const updateSourceLabel = useCallback((id: string, label: string) => {
     setSources(prev => prev.map(s => s.id === id ? { ...s, label } : s));
-    await supabase.from('sources').update({ label }).eq('id', id);
   }, []);
 
   const reconnectAll = useCallback(async () => {
