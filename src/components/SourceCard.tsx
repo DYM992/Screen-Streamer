@@ -88,8 +88,8 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onActivate, onDeacti
           )}
         </div>
 
-        {/* Right side – action icons */}
-        <div className="flex gap-1 items-center">
+        {/* Right side – action icons, pushed to far right */}
+        <div className="flex gap-1 items-center ml-auto">
           <Button 
             variant="ghost" 
             size="icon" 
