@@ -23,6 +23,7 @@ interface SourceCardProps {
 const SourceCard = ({ source, roomName, onRemove, onRename, onActivate, onDeactivate, onDeviceChange }: SourceCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [label, setLabel] = useState(source.label);
+  const [showDeviceSelect, setShowDeviceSelect] = useState(false);
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -55,6 +56,8 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onActivate, onDeacti
     if (source.type === 'camera') return <Camera className="w-4 h-4 text-pink-400" />;
     return <Mic className="w-4 h-4 text-emerald-400" />;
   };
+
+  const toggleDeviceSelect = () => setShowDeviceSelect(prev => !prev);
 
   return (
     <Card className={`overflow-hidden border-2 transition-all group ${
@@ -103,11 +106,27 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onActivate, onDeacti
             <Trash2 className="w-4 h-4" />
           </Button>
           {(source.type === 'camera' || source.type === 'audio') && (
-            <DeviceSelector
-              type={source.type as any}
-              selectedDeviceId={source.deviceId}
-              onChange={(deviceId) => onDeviceChange(source.id, deviceId)}
-            />
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleDeviceSelect}
+                className="h-8 w-8 text-slate-400 hover:text-indigo-500"
+                title="Change Device"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+              {showDeviceSelect && (
+                <DeviceSelector
+                  type={source.type as any}
+                  selectedDeviceId={source.deviceId}
+                  onChange={(deviceId) => {
+                    onDeviceChange(source.id, deviceId);
+                    setShowDeviceSelect(false);
+                  }}
+                />
+              )}
+            </>
           )}
         </div>
       </CardHeader>
