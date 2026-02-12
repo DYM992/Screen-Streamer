@@ -1,0 +1,10 @@
+html,
+body,
+#root {
+  background: transparent !important;
+  overflow: hidden !important;
+}
+
+video {
+  background: transparent !important;
+}
