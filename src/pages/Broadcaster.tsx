@@ -62,10 +62,10 @@ const Broadcaster = () => {
                 </span>
               </h2>
               <div className="flex gap-3">
-                <Button onClick={addScreenSource} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl px-6 h-12">
+                <Button onClick={() => addScreenSource()} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl px-6 h-12">
                   <Monitor className="w-4 h-4 mr-2" /> Add Screen
                 </Button>
-                <Button onClick={addMicSource} variant="outline" className="border-slate-800 hover:bg-slate-900 font-bold rounded-xl px-6 h-12">
+                <Button onClick={() => addMicSource()} variant="outline" className="border-slate-800 hover:bg-slate-900 font-bold rounded-xl px-6 h-12">
                   <Mic className="w-4 h-4 mr-2" /> Add Mic
                 </Button>
               </div>

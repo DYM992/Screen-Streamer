@@ -15,12 +15,10 @@ export const useStreamManager = (peerId?: string) => {
   const [connections, setConnections] = useState<Set<string>>(new Set());
   const sourcesRef = useRef<StreamSource[]>([]);
 
-  // Sync ref for peer callbacks to avoid stale closures
   useEffect(() => {
     sourcesRef.current = sources;
   }, [sources]);
 
-  // Initialize Peer
   useEffect(() => {
     if (!peerId) return;
 
@@ -47,10 +45,7 @@ export const useStreamManager = (peerId?: string) => {
     });
 
     newPeer.on('call', (call) => {
-      console.log('Incoming call from receiver:', call.peer);
-      call.answer(); // Answer with nothing initially
-      
-      // Then push all current streams to the receiver
+      call.answer();
       sourcesRef.current.forEach(source => {
         newPeer.call(call.peer, source.stream, {
           metadata: { id: source.id, label: source.label, type: source.type }
@@ -61,8 +56,6 @@ export const useStreamManager = (peerId?: string) => {
     newPeer.on('error', (err) => {
       if (err.type === 'unavailable-id') {
         toast.error("Room ID already taken. Try a different name.");
-      } else {
-        console.error('Peer error:', err);
       }
     });
 
@@ -74,7 +67,6 @@ export const useStreamManager = (peerId?: string) => {
 
   const addScreenSource = useCallback(async () => {
     try {
-      console.log("Requesting screen capture...");
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: { frameRate: 60 },
         audio: true
@@ -91,7 +83,6 @@ export const useStreamManager = (peerId?: string) => {
       setSources(prev => [...prev, newSource]);
       toast.success("Screen source added");
 
-      // Handle system audio if present
       if (stream.getAudioTracks().length > 0) {
         const audioId = `a-sys-${Math.random().toString(36).substr(2, 5)}`;
         const audioSource: StreamSource = {
@@ -103,16 +94,19 @@ export const useStreamManager = (peerId?: string) => {
         setSources(prev => [...prev, audioSource]);
       }
     } catch (err: any) {
-      console.error("Screen capture error:", err);
-      toast.error(`Screen capture failed: ${err.name === 'NotAllowedError' ? 'Permission denied' : err.message}`);
+      if (err.name !== 'NotAllowedError') {
+        toast.error(`Screen capture failed: ${err.message}`);
+      }
     }
   }, []);
 
   const addMicSource = useCallback(async (deviceId?: string) => {
     try {
-      console.log("Requesting mic access...");
+      // Safety check: ensure deviceId is a string and not a React event object
+      const actualDeviceId = typeof deviceId === 'string' ? deviceId : undefined;
+      
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: deviceId ? { deviceId: { exact: deviceId } } : true 
+        audio: actualDeviceId ? { deviceId: { exact: actualDeviceId } } : true 
       });
       
       const id = `a-mic-${Math.random().toString(36).substr(2, 5)}`;
@@ -125,19 +119,20 @@ export const useStreamManager = (peerId?: string) => {
       setSources(prev => [...prev, newSource]);
       toast.success("Microphone added");
     } catch (err: any) {
-      console.error("Mic access error:", err);
-      toast.error(`Mic access failed: ${err.name === 'NotAllowedError' ? 'Permission denied' : err.message}`);
+      toast.error(`Mic access failed: ${err.message}`);
     }
   }, []);
 
   const replaceSourceStream = useCallback(async (id: string, type: 'video' | 'audio', deviceId?: string) => {
     try {
+      const actualDeviceId = typeof deviceId === 'string' ? deviceId : undefined;
       let newStream: MediaStream;
+      
       if (type === 'video') {
         newStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 60 }, audio: true });
       } else {
         newStream = await navigator.mediaDevices.getUserMedia({ 
-          audio: deviceId ? { deviceId: { exact: deviceId } } : true 
+          audio: actualDeviceId ? { deviceId: { exact: actualDeviceId } } : true 
         });
       }
 
