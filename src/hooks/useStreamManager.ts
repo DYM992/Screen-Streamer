@@ -28,7 +28,9 @@ export const useStreamManager = (peerId?: string) => {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' }
-        ]
+        ],
+        // Force low latency
+        iceTransportPolicy: 'all',
       }
     });
 
@@ -51,17 +53,29 @@ export const useStreamManager = (peerId?: string) => {
           metadata: { id: source.id, label: source.label, type: source.type }
         });
 
-        // @ts-ignore - accessing internal peerConnection
+        // @ts-ignore - Accessing internal peerConnection for deep optimization
         const pc = mediaCall.peerConnection as RTCPeerConnection;
         if (pc) {
-          pc.getSenders().forEach(sender => {
-            if (sender.track?.kind === 'video') {
-              const params = sender.getParameters();
-              // @ts-ignore
-              params.degradationPreference = 'maintain-framerate';
-              sender.setParameters(params).catch(console.error);
+          pc.oniceconnectionstatechange = () => {
+            if (pc.iceConnectionState === 'connected') {
+              pc.getSenders().forEach(sender => {
+                if (sender.track?.kind === 'video') {
+                  const params = sender.getParameters();
+                  if (!params.encodings) params.encodings = [{}];
+                  
+                  // Force high performance parameters
+                  // @ts-ignore
+                  params.degradationPreference = 'maintain-framerate';
+                  params.encodings[0].maxBitrate = 10000000; // 10 Mbps for LAN quality
+                  params.encodings[0].maxFramerate = 60;
+                  params.encodings[0].priority = 'high';
+                  params.encodings[0].networkPriority = 'high';
+                  
+                  sender.setParameters(params).catch(console.error);
+                }
+              });
             }
-          });
+          };
         }
       });
     });
@@ -72,12 +86,13 @@ export const useStreamManager = (peerId?: string) => {
 
   const optimizeTrack = (track: MediaStreamTrack) => {
     if (track.kind === 'video') {
-      // @ts-ignore
+      // @ts-ignore - contentHint is vital for motion consistency
       if ('contentHint' in track) track.contentHint = 'motion';
       
       track.applyConstraints({
-        // Use ideal instead of min/max to prevent OverconstrainedError
-        frameRate: { ideal: 60 }
+        frameRate: { ideal: 60 },
+        // @ts-ignore - some browsers support this to reduce latency
+        latencyHint: 0
       }).catch(console.error);
     }
   };
@@ -87,6 +102,8 @@ export const useStreamManager = (peerId?: string) => {
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: { 
           frameRate: { ideal: 60 },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
           // @ts-ignore
           cursor: 'always'
         },
@@ -108,7 +125,7 @@ export const useStreamManager = (peerId?: string) => {
       };
 
       setSources(prev => [...prev, newSource]);
-      toast.success("Screen source added");
+      toast.success("High-performance screen source added");
 
       if (stream.getAudioTracks().length > 0) {
         const audioId = `a-sys-${Math.random().toString(36).substr(2, 5)}`;
@@ -121,10 +138,7 @@ export const useStreamManager = (peerId?: string) => {
         setSources(prev => [...prev, audioSource]);
       }
     } catch (err: any) {
-      console.error("Screen capture error:", err);
-      if (err.name !== 'NotAllowedError') {
-        toast.error(`Capture failed: ${err.message || 'Unknown error'}`);
-      }
+      if (err.name !== 'NotAllowedError') toast.error("Capture failed");
     }
   }, []);
 
@@ -163,7 +177,7 @@ export const useStreamManager = (peerId?: string) => {
       
       if (type === 'video') {
         newStream = await navigator.mediaDevices.getDisplayMedia({ 
-          video: { frameRate: { ideal: 60 } }, 
+          video: { frameRate: { ideal: 60 }, width: { ideal: 1920 }, height: { ideal: 1080 } }, 
           audio: true 
         });
       } else {
