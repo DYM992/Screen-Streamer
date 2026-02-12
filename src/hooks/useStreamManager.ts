@@ -305,29 +305,6 @@ export const useStreamManager = (roomName: string) => {
     }
   }, [deactivateSource, activateSource]);
 
-  // ---- NEW FUNCTION: change source type ----
-  const updateSourceType = useCallback(async (id: string, newType: 'video' | 'audio' | 'camera') => {
-    const source = sourcesRef.current.find(s => s.id === id);
-    if (!source) return;
-
-    // Update DB
-    if (source.dbId) {
-      await supabase.from('sources').update({ type: newType }).eq('id', source.dbId);
-    }
-
-    // If active, deactivate first then change type and reactivate
-    const wasActive = source.isActive;
-    if (wasActive) {
-      await deactivateSource(id);
-    }
-
-    setSources(prev => prev.map(s => s.id === id ? { ...s, type: newType } : s));
-
-    if (wasActive) {
-      await activateSource(id);
-    }
-  }, [deactivateSource, activateSource]);
-
   const reconnectAll = useCallback(async () => {
     const enabledButInactive = sources.filter(s => s.isEnabled && !s.isActive);
     for (const s of enabledButInactive) {
@@ -346,7 +323,6 @@ export const useStreamManager = (roomName: string) => {
     removeSource,
     updateSourceLabel,
     updateSourceDeviceId,
-    updateSourceType,
     reconnectAll,
     saveToDatabase
   };
