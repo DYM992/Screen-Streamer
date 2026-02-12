@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Peer from 'peerjs';
-import "./Receiver.css";
 
 interface RemoteSource {
   id: string;
@@ -78,7 +77,7 @@ const Receiver = () => {
               muted
               controls={false}
               ref={el => { if (el && el.srcObject !== source.stream) el.srcObject = source.stream; }}
-              className="w-screen h-screen object-fill"
+              className="w-screen h-screen object-fill bg-black"
             />
           )}
         </div>
