@@ -88,7 +88,7 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onActivate, onDeacti
           )}
         </div>
 
-        {/* Right side – action icons, pushed to far right */}
+        {/* Right side – action icons, right‑aligned */}
         <div className="flex gap-1 items-center ml-auto">
           <Button 
             variant="ghost" 
@@ -105,17 +105,9 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onActivate, onDeacti
           <Button variant="ghost" size="icon" onClick={() => onRemove(source.id)} className="h-8 w-8 text-slate-400 hover:text-red-400">
             <Trash2 className="w-4 h-4" />
           </Button>
-          {(source.type === 'camera' || source.type === 'audio') && (
-            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-              <DeviceSelector
-                type={source.type as any}
-                selectedDeviceId={source.deviceId}
-                onChange={(deviceId) => onDeviceChange(source.id, deviceId)}
-              />
-            </div>
-          )}
         </div>
       </CardHeader>
+
       <CardContent>
         <div className="relative aspect-video bg-black rounded-xl overflow-hidden">
           {!source.isActive ? (
@@ -150,6 +142,17 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onActivate, onDeacti
             </>
           )}
         </div>
+
+        {/* Dropdown placed below the preview, hidden until card hover */}
+        {(source.type === 'camera' || source.type === 'audio') && (
+          <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <DeviceSelector
+              type={source.type as any}
+              selectedDeviceId={source.deviceId}
+              onChange={(deviceId) => onDeviceChange(source.id, deviceId)}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
