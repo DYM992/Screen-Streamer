@@ -43,7 +43,18 @@ const Broadcaster = () => {
       return;
     }
 
-    // 1️⃣ Update the room's primary key (id) to the new ID
+    // 1️⃣ Update all sources to point to the new room ID first (avoids FK conflict)
+    const { error: sourceError } = await supabase
+      .from('sources')
+      .update({ room_id: newId })
+      .eq('room_id', oldId);
+
+    if (sourceError) {
+      console.error('Failed to update sources during rename:', sourceError);
+      return;
+    }
+
+    // 2️⃣ Update the room's primary key (id) to the new ID
     const { error: roomError } = await supabase
       .from('rooms')
       .update({ id: newId })
@@ -54,20 +65,9 @@ const Broadcaster = () => {
       return;
     }
 
-    // 2️⃣ Update all sources to point to the new room ID
-    const { error: sourceError } = await supabase
-      .from('sources')
-      .update({ room_id: newId })
-      .eq('room_id', oldId);
-
-    if (sourceError) {
-      console.error('Failed to update sources after room rename:', sourceError);
-      // Rollback room rename if needed (optional)
-      return;
-    }
-
-    // 3️⃣ Update local state so the manager loads the new room
+    // 3️⃣ Update local state & URL so the manager loads the new room
     setRoomName(newId);
+    setSearchParams({ room: newId }, { replace: true });
   };
 
   // Handle input change without triggering a load
@@ -88,7 +88,7 @@ const Broadcaster = () => {
   };
 
   useEffect(() => {
-    // Ensure the URL always contains the room param
+    // Ensure the URL always contains the room param (in case it was missing initially)
     if (!searchParams.get('room')) {
       setSearchParams({ room: roomName }, { replace: true });
     }
