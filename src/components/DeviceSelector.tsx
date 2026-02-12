@@ -27,7 +27,7 @@ export const DeviceSelector = ({ type, selectedDeviceId, onChange }: DeviceSelec
       onValueChange={onChange}
       value={selectedDeviceId}
     >
-      <SelectTrigger className="h-8 w-32 text-sm">
+      <SelectTrigger className="h-8 w-full text-sm">
         <SelectValue placeholder={type === "camera" ? "Select Camera" : "Select Mic"} />
       </SelectTrigger>
       <SelectContent>

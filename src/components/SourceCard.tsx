@@ -61,7 +61,6 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onActivate, onDeacti
       source.isActive ? 'border-indigo-500/20 bg-slate-900/80' : 'border-slate-800 bg-slate-900/40 grayscale opacity-60'
     }`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-        {/* Left side – icon + label + edit */}
         <div className="flex items-center gap-2 flex-1 mr-2">
           {getIcon()}
           {isEditing ? (
@@ -88,7 +87,6 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onActivate, onDeacti
           )}
         </div>
 
-        {/* Right side – action icons, right‑aligned */}
         <div className="flex gap-1 items-center ml-auto">
           <Button 
             variant="ghost" 
@@ -143,9 +141,8 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onActivate, onDeacti
           )}
         </div>
 
-        {/* Dropdown placed below the preview, hidden until card hover */}
         {(source.type === 'camera' || source.type === 'audio') && (
-          <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="mt-2 w-full opacity-0 group-hover:opacity-100 transition-opacity">
             <DeviceSelector
               type={source.type as any}
               selectedDeviceId={source.deviceId}
