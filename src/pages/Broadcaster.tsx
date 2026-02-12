@@ -57,8 +57,8 @@ const Broadcaster = () => {
 
     const { error: roomError } = await supabase
       .from('rooms')
-      .update({ id: newId })
-      .eq('id', oldId);
+      .update({ id: oldId })
+      .eq('id', newId);
 
     if (roomError) {
       console.error('Failed to rename room:', roomError);
