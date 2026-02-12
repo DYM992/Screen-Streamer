@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import Peer, { MediaConnection } from 'peerjs';
 import { toast } from "sonner";
 
@@ -12,15 +12,46 @@ export interface StreamSource {
 export const useStreamManager = (peerId?: string) => {
   const [peer, setPeer] = useState<Peer | null>(null);
   const [sources, setSources] = useState<StreamSource[]>([]);
+  const [connections, setConnections] = useState<Set<string>>(new Set());
+  const sourcesRef = useRef<StreamSource[]>([]);
+
+  // Keep ref in sync for the peer event handlers
+  useEffect(() => {
+    sourcesRef.current = sources;
+  }, [sources]);
 
   useEffect(() => {
-    const newPeer = new Peer(peerId);
+    const newPeer = new Peer(peerId, {
+      debug: 1,
+      config: {
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      }
+    });
+
     newPeer.on('open', (id) => {
-      console.log('Peer opened with ID:', id);
+      console.log('Broadcaster active:', id);
     });
-    newPeer.on('error', (err) => {
-      toast.error(`Peer Error: ${err.type}`);
+
+    newPeer.on('connection', (conn) => {
+      setConnections(prev => new Set(prev).add(conn.peer));
+      conn.on('close', () => {
+        setConnections(prev => {
+          const next = new Set(prev);
+          next.delete(conn.peer);
+          return next;
+        });
+      });
     });
+
+    newPeer.on('call', (call) => {
+      // When a receiver calls, send all current sources
+      sourcesRef.current.forEach(source => {
+        newPeer.call(call.peer, source.stream, {
+          metadata: { id: source.id, label: source.label, type: source.type }
+        });
+      });
+    });
+
     setPeer(newPeer);
 
     return () => {
@@ -30,80 +61,60 @@ export const useStreamManager = (peerId?: string) => {
 
   const addScreenSource = useCallback(async () => {
     try {
-      // Requesting both video and audio for system/app sound
       const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: { 
-          frameRate: { ideal: 60, max: 60 },
-          cursor: "always"
-        },
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-          // These help with high-quality game/app audio
-          suppressLocalAudioPlayback: false,
-        }
+        video: { frameRate: 60 },
+        audio: true
       });
       
+      const id = `v-${Math.random().toString(36).substr(2, 5)}`;
       const newSource: StreamSource = {
-        id: `video-${Date.now()}`,
-        label: "Screen/App Capture",
+        id,
+        label: "Game/App Video",
         type: 'video',
         stream
       };
 
       setSources(prev => [...prev, newSource]);
-      
-      // If the user shared audio with the screen, add it as a separate source too
+
       if (stream.getAudioTracks().length > 0) {
-        const audioStream = new MediaStream(stream.getAudioTracks());
+        const audioId = `a-sys-${Math.random().toString(36).substr(2, 5)}`;
         const audioSource: StreamSource = {
-          id: `audio-sys-${Date.now()}`,
-          label: "System/App Audio",
+          id: audioId,
+          label: "Game/App Audio",
           type: 'audio',
-          stream: audioStream
+          stream: new MediaStream(stream.getAudioTracks())
         };
         setSources(prev => [...prev, audioSource]);
       }
-
-      return newSource;
     } catch (err: any) {
-      toast.error(`Capture Failed: ${err.message || 'User cancelled or permission denied'}`);
-      console.error("Failed to get display media", err);
+      toast.error("Capture cancelled or failed");
     }
   }, []);
 
   const addMicSource = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
-      });
-      
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const id = `a-mic-${Math.random().toString(36).substr(2, 5)}`;
       const newSource: StreamSource = {
-        id: `audio-mic-${Date.now()}`,
-        label: "Microphone Input",
+        id,
+        label: "Microphone",
         type: 'audio',
         stream
       };
-
       setSources(prev => [...prev, newSource]);
-      return newSource;
     } catch (err: any) {
-      toast.error(`Mic Failed: ${err.message}`);
-      console.error("Failed to get audio media", err);
+      toast.error("Microphone access denied");
     }
+  }, []);
+
+  const updateSourceLabel = useCallback((id: string, label: string) => {
+    setSources(prev => prev.map(s => s.id === id ? { ...s, label } : s));
   }, []);
 
   const removeSource = useCallback((id: string) => {
     setSources(prev => {
       const source = prev.find(s => s.id === id);
-      if (source) {
-        source.stream.getTracks().forEach(track => track.stop());
-      }
+      if (source) source.stream.getTracks().forEach(t => t.stop());
       return prev.filter(s => s.id !== id);
     });
   }, []);
@@ -111,8 +122,10 @@ export const useStreamManager = (peerId?: string) => {
   return {
     peer,
     sources,
+    connections: connections.size,
     addScreenSource,
     addMicSource,
+    updateSourceLabel,
     removeSource
   };
 };

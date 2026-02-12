@@ -1,15 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Monitor, Mic, Trash2, Activity } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Monitor, Mic, Trash2, Activity, Edit2, Check, ExternalLink } from "lucide-react";
 import { StreamSource } from "@/hooks/useStreamManager";
+import { toast } from "sonner";
 
 interface SourceCardProps {
   source: StreamSource;
+  roomName: string;
   onRemove: (id: string) => void;
+  onRename: (id: string, label: string) => void;
 }
 
-const SourceCard = ({ source, onRemove }: SourceCardProps) => {
+const SourceCard = ({ source, roomName, onRemove, onRename }: SourceCardProps) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [label, setLabel] = useState(source.label);
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
   React.useEffect(() => {
@@ -18,43 +24,75 @@ const SourceCard = ({ source, onRemove }: SourceCardProps) => {
     }
   }, [source]);
 
+  const handleRename = () => {
+    onRename(source.id, label);
+    setIsEditing(false);
+  };
+
+  const copyObsUrl = () => {
+    const url = `${window.location.origin}/receiver?room=${roomName}&sourceId=${source.id}`;
+    navigator.clipboard.writeText(url);
+    toast.success(`OBS URL for ${source.label} copied!`);
+  };
+
   return (
-    <Card className="overflow-hidden border-2 border-indigo-500/20 bg-slate-900/50 backdrop-blur-sm">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
+    <Card className="overflow-hidden border-2 border-indigo-500/20 bg-slate-900/80 backdrop-blur-xl transition-all hover:border-indigo-500/40">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+        <div className="flex items-center gap-2 flex-1 mr-2">
           {source.type === 'video' ? <Monitor className="w-4 h-4 text-indigo-400" /> : <Mic className="w-4 h-4 text-emerald-400" />}
-          {source.label}
-        </CardTitle>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => onRemove(source.id)}
-          className="text-slate-400 hover:text-red-400 hover:bg-red-400/10"
-        >
-          <Trash2 className="w-4 h-4" />
-        </Button>
+          {isEditing ? (
+            <div className="flex gap-1 flex-1">
+              <Input 
+                value={label} 
+                onChange={(e) => setLabel(e.target.value)}
+                className="h-7 text-xs bg-slate-950 border-slate-800"
+                autoFocus
+              />
+              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleRename}>
+                <Check className="w-3 h-3" />
+              </Button>
+            </div>
+          ) : (
+            <CardTitle className="text-sm font-bold truncate max-w-[150px]">
+              {source.label}
+            </CardTitle>
+          )}
+          {!isEditing && (
+            <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setIsEditing(true)}>
+              <Edit2 className="w-3 h-3" />
+            </Button>
+          )}
+        </div>
+        <div className="flex gap-1">
+          <Button variant="ghost" size="icon" onClick={copyObsUrl} className="h-8 w-8 text-slate-400 hover:text-indigo-400" title="Copy OBS Source URL">
+            <ExternalLink className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => onRemove(source.id)} className="h-8 w-8 text-slate-400 hover:text-red-400">
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="relative aspect-video bg-black rounded-md overflow-hidden flex items-center justify-center">
+        <div className="relative aspect-video bg-black rounded-xl overflow-hidden group">
           {source.type === 'video' ? (
-            <video 
-              ref={videoRef} 
-              autoPlay 
-              muted 
-              playsInline 
-              className="w-full h-full object-contain"
-            />
+            <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-contain" />
           ) : (
-            <div className="flex flex-col items-center gap-2">
-              <Activity className="w-8 h-8 text-emerald-500 animate-pulse" />
-              <span className="text-xs text-slate-400">Audio Stream Active</span>
+            <div className="flex flex-col items-center justify-center h-full gap-3 bg-slate-950/50">
+              <div className="flex gap-1 items-end h-8">
+                {[1,2,3,4,5].map(i => (
+                  <div key={i} className="w-1.5 bg-emerald-500 rounded-full animate-pulse" style={{ height: `${Math.random() * 100}%`, animationDelay: `${i * 0.1}s` }} />
+                ))}
+              </div>
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Audio Active</span>
             </div>
           )}
         </div>
-        <div className="mt-2 flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Live</span>
-          <span className="text-[10px] text-slate-600 ml-auto font-mono">{source.id}</span>
+        <div className="mt-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Streaming</span>
+          </div>
+          <code className="text-[9px] text-slate-600 bg-slate-950 px-1.5 py-0.5 rounded">{source.id}</code>
         </div>
       </CardContent>
     </Card>
