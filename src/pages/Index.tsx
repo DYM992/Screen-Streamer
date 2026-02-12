@@ -4,30 +4,48 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Radio, Tv, ShieldCheck, History, ArrowRight, Plus, Trash2, Monitor } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface RoomData {
   id: string;
   thumbnail?: string;
-  createdAt: string;
+  created_at: string;
 }
 
 const Index = () => {
   const navigate = useNavigate();
   const [rooms, setRooms] = useState<RoomData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const savedRooms = JSON.parse(localStorage.getItem('streamsync_rooms_v2') || '{}');
-    setRooms(Object.values(savedRooms));
+    fetchRooms();
   }, []);
 
-  const deleteRoom = (id: string, e: React.MouseEvent) => {
+  const fetchRooms = async () => {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('rooms')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      toast.error("Failed to load rooms");
+    } else {
+      setRooms(data || []);
+    }
+    setIsLoading(false);
+  };
+
+  const deleteRoom = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const savedRooms = JSON.parse(localStorage.getItem('streamsync_rooms_v2') || '{}');
-    delete savedRooms[id];
-    localStorage.removeItem(`room_meta_${id}`);
-    localStorage.setItem('streamsync_rooms_v2', JSON.stringify(savedRooms));
-    setRooms(Object.values(savedRooms));
-    toast.success("Room deleted");
+    const { error } = await supabase.from('rooms').delete().eq('id', id);
+    
+    if (error) {
+      toast.error("Failed to delete room");
+    } else {
+      setRooms(prev => prev.filter(r => r.id !== id));
+      toast.success("Room deleted");
+    }
   };
 
   return (
@@ -81,7 +99,7 @@ const Index = () => {
           </Card>
         </div>
 
-        {rooms.length > 0 && (
+        {!isLoading && rooms.length > 0 && (
           <div className="space-y-6">
             <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-3 text-slate-400">
@@ -125,7 +143,7 @@ const Index = () => {
                     <div className="space-y-1">
                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Last Active</p>
                       <p className="text-xs text-slate-300 font-bold">
-                        {new Date(room.createdAt).toLocaleDateString()}
+                        {new Date(room.created_at).toLocaleDateString()}
                       </p>
                     </div>
                     <ArrowRight className="w-5 h-5 text-slate-700 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
