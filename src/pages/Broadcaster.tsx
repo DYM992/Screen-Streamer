@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Monitor, Mic, Camera, LayoutGrid, Info, ArrowLeft, Play, Square, RefreshCw, Edit2, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import "../globals.css";
 
 const Broadcaster = () => {
   const navigate = useNavigate();
