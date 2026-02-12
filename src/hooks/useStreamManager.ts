@@ -187,13 +187,37 @@ export const useStreamManager = (roomName: string) => {
     try {
       let stream: MediaStream;
       if (source.type === 'video') {
+        // Screen share – always ask the user
         stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
       } else {
-        stream = await navigator.mediaDevices.getUserMedia({ 
-          video: source.type === 'camera' ? { width: 1280, height: 720 } : false,
-          audio: true 
-        });
+        // Camera or audio – reuse stored deviceId if we have one
+        const constraints: MediaStreamConstraints = {
+          video: source.type === 'camera'
+            ? source.deviceId
+              ? { deviceId: { exact: source.deviceId } }
+              : { width: 1280, height: 720 }
+            : false,
+          audio: true
+        };
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
       }
+
+      // Persist deviceId for camera sources after we have a stream
+      if (source.type === 'camera') {
+        const videoTrack = stream.getVideoTracks()[0];
+        const settings = videoTrack?.getSettings();
+        const newDeviceId = settings?.deviceId;
+        if (newDeviceId && newDeviceId !== source.deviceId) {
+          // Update in‑memory and DB
+          source.deviceId = newDeviceId;
+          if (source.dbId) {
+            await supabase.from('sources')
+              .update({ device_id: newDeviceId })
+              .eq('id', source.dbId);
+          }
+        }
+      }
+
       setSources(prev => prev.map(s => s.id === id ? { ...s, stream, isActive: true, isEnabled: true } : s));
       // Persist enabled state
       if (source.dbId) {
