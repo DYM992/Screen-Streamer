@@ -54,11 +54,15 @@ const SourceCard = ({
     setIsEditing(false);
   };
 
-  const toggleVisibility = () => {
+  // async toggle to catch activation errors
+  const toggleVisibility = async () => {
     if (source.isActive) {
       onDeactivate(source.id);
     } else {
-      onActivate(source.id);
+      const success = await onActivate(source.id);
+      if (!success) {
+        toast.error(`Failed to enable ${source.label}`);
+      }
     }
   };
 

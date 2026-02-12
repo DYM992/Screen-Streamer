@@ -222,17 +222,20 @@ export const useStreamManager = (roomName: string) => {
       }
       // --------- APPLICATION AUDIO ----------
       else if (source.type === "appAudio") {
-        // Try to capture system audio via getDisplayMedia (audio only)
+        // Try system audio via getDisplayMedia (audio only). If not supported, fall back to microphone.
         try {
           stream = await navigator.mediaDevices.getDisplayMedia({
             video: false,
             audio: true,
           });
         } catch (err) {
-          // NotSupportedError or other – inform user and abort activation
-          console.error('App audio capture not supported:', err);
-          toast.error('Application audio capture is not supported in this browser.');
-          return false;
+          // NotSupportedError or other – fallback to microphone
+          console.warn('App audio capture not supported, falling back to microphone:', err);
+          toast.info('App audio not supported; using microphone instead.');
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: false,
+            audio: true,
+          });
         }
       }
       // --------- CAMERA ----------
