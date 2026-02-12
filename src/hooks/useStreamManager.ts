@@ -139,8 +139,27 @@ export const useStreamManager = (roomName: string) => {
     };
   }, [roomName]);
 
+  const stopAllSources = useCallback(() => {
+    // Stop media tracks and reset active flags
+    sourcesRef.current.forEach(source => {
+      if (source.stream) {
+        source.stream.getTracks().forEach(track => track.stop());
+      }
+    });
+    setSources(prev =>
+      prev.map(s => ({
+        ...s,
+        stream: undefined,
+        isActive: false,
+      }))
+    );
+  }, []);
+
   const toggleBroadcasting = useCallback(async () => {
     if (isBroadcasting) {
+      // Stop all active streams before destroying the peer
+      stopAllSources();
+
       peer?.destroy();
       setPeer(null);
       setConnections(new Set());
@@ -178,7 +197,7 @@ export const useStreamManager = (roomName: string) => {
       newPeer.on('error', () => setIsBroadcasting(false));
       setPeer(newPeer);
     }
-  }, [isBroadcasting, roomName, peer, captureThumbnail]);
+  }, [isBroadcasting, roomName, peer, captureThumbnail, stopAllSources]);
 
   const activateSource = useCallback(async (id: string) => {
     const source = sourcesRef.current.find(s => s.id === id);
