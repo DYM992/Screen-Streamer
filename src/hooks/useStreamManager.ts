@@ -204,6 +204,11 @@ export const useStreamManager = (roomName: string) => {
     const source = sourcesRef.current.find(s => s.id === id);
     if (!source) return;
 
+    // Ensure any previous stream for this source is stopped before re‑requesting
+    if (source.stream) {
+      source.stream.getTracks().forEach(t => t.stop());
+    }
+
     try {
       let constraints: MediaStreamConstraints = { audio: true };
       if (source.type === 'video') {
@@ -225,6 +230,7 @@ export const useStreamManager = (roomName: string) => {
       return true;
     } catch (err) {
       console.error('Failed to activate source', err);
+      toast.error('Unable to access selected device');
       return false;
     }
   }, []);
