@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
   Monitor, Mic, Trash2, Edit2, Check, ExternalLink, Settings, 
-  RefreshCw, Volume2, Video
+  RefreshCw
 } from "lucide-react";
 import { 
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter 
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger 
 } from "@/components/ui/dialog";
 import { 
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
@@ -65,20 +65,20 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: So
               <Input 
                 value={label} 
                 onChange={(e) => setLabel(e.target.value)}
-                className="h-7 text-xs bg-slate-950 border-slate-800"
+                className="h-7 text-xs bg-slate-950 border-slate-800 text-white"
                 autoFocus
               />
-              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleRename}>
+              <Button size="icon" variant="ghost" className="h-7 w-7 text-emerald-500" onClick={handleRename}>
                 <Check className="w-3 h-3" />
               </Button>
             </div>
           ) : (
-            <CardTitle className="text-sm font-bold truncate max-w-[120px]">
+            <CardTitle className="text-sm font-bold truncate max-w-[120px] text-slate-100">
               {source.label}
             </CardTitle>
           )}
           {!isEditing && (
-            <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setIsEditing(true)}>
+            <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-white" onClick={() => setIsEditing(true)}>
               <Edit2 className="w-3 h-3" />
             </Button>
           )}
@@ -92,7 +92,7 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: So
             </DialogTrigger>
             <DialogContent className="bg-slate-950 border-slate-800 text-white">
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
+                <DialogTitle className="flex items-center gap-2 text-white">
                   <Settings className="w-5 h-5 text-indigo-500" />
                   Source Settings: {source.label}
                 </DialogTitle>
@@ -101,9 +101,9 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: So
               <div className="py-6 space-y-6">
                 {source.type === 'audio' ? (
                   <div className="space-y-3">
-                    <label className="text-xs font-black uppercase text-slate-500 tracking-widest">Select Microphone</label>
+                    <label className="text-xs font-black uppercase text-slate-400 tracking-widest">Select Microphone</label>
                     <Select onValueChange={setSelectedDevice} defaultValue={selectedDevice}>
-                      <SelectTrigger className="bg-slate-900 border-slate-800">
+                      <SelectTrigger className="bg-slate-900 border-slate-800 text-white">
                         <SelectValue placeholder="Choose a device..." />
                       </SelectTrigger>
                       <SelectContent className="bg-slate-900 border-slate-800 text-white">
@@ -115,7 +115,7 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: So
                       </SelectContent>
                     </Select>
                     <Button 
-                      className="w-full bg-indigo-600 hover:bg-indigo-500" 
+                      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white" 
                       onClick={() => onUpdateStream(source.id, 'audio', selectedDevice)}
                     >
                       <RefreshCw className="w-4 h-4 mr-2" /> Update Audio Device
@@ -129,7 +129,7 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: So
                       </p>
                     </div>
                     <Button 
-                      className="w-full bg-indigo-600 hover:bg-indigo-500" 
+                      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white" 
                       onClick={() => onUpdateStream(source.id, 'video')}
                     >
                       <RefreshCw className="w-4 h-4 mr-2" /> Re-select Capture Source
@@ -159,16 +159,16 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onUpdateStream }: So
                   <div key={i} className="w-1.5 bg-emerald-500 rounded-full animate-pulse" style={{ height: `${Math.random() * 100}%`, animationDelay: `${i * 0.1}s` }} />
                 ))}
               </div>
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Audio Active</span>
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Audio Active</span>
             </div>
           )}
         </div>
         <div className="mt-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Streaming</span>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Streaming</span>
           </div>
-          <code className="text-[9px] text-slate-600 bg-slate-950 px-1.5 py-0.5 rounded">{source.id}</code>
+          <code className="text-[9px] text-slate-400 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">{source.id}</code>
         </div>
       </CardContent>
     </Card>
