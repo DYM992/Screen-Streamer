@@ -81,7 +81,8 @@ const Broadcaster = () => {
   // Save on Enter key
   const handleRoomIdKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      e.target.blur(); // trigger blur handler which calls commit
+      e.preventDefault(); // prevent form submission
+      await commitRoomIdChange();
     }
   };
 
@@ -149,7 +150,7 @@ const Broadcaster = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={commitRoomIdChange}
+                    onClick={() => commitRoomIdChange()}
                     className="h-6 w-6 text-emerald-500 hover:text-emerald-400"
                     title="Confirm Room ID"
                   >
