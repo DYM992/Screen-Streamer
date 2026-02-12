@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { StreamSource } from "@/hooks/useStreamManager";
 import { toast } from "sonner";
+import { DeviceSelector } from "./DeviceSelector";
 
 interface SourceCardProps {
   source: StreamSource;
@@ -16,9 +17,10 @@ interface SourceCardProps {
   onRename: (id: string, label: string) => void;
   onActivate: (id: string) => Promise<boolean | undefined>;
   onDeactivate: (id: string) => void;
+  onDeviceChange: (id: string, deviceId: string) => void;
 }
 
-const SourceCard = ({ source, roomName, onRemove, onRename, onActivate, onDeactivate }: SourceCardProps) => {
+const SourceCard = ({ source, roomName, onRemove, onRename, onActivate, onDeactivate, onDeviceChange }: SourceCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [label, setLabel] = useState(source.label);
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -84,7 +86,7 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onActivate, onDeacti
             </Button>
           )}
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1 items-center">
           <Button 
             variant="ghost" 
             size="icon" 
@@ -100,6 +102,13 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onActivate, onDeacti
           <Button variant="ghost" size="icon" onClick={() => onRemove(source.id)} className="h-8 w-8 text-slate-400 hover:text-red-400">
             <Trash2 className="w-4 h-4" />
           </Button>
+          {(source.type === 'camera' || source.type === 'audio') && (
+            <DeviceSelector
+              type={source.type as any}
+              selectedDeviceId={source.deviceId}
+              onChange={(deviceId) => onDeviceChange(source.id, deviceId)}
+            />
+          )}
         </div>
       </CardHeader>
       <CardContent>

@@ -90,7 +90,8 @@ export const useStreamManager = (roomName: string) => {
           .update({ 
             label: source.label, 
             is_enabled: source.isEnabled,
-            device_id: source.deviceId 
+            device_id: source.deviceId,
+            type: source.type
           })
           .eq('id', source.dbId);
       }
@@ -204,18 +205,26 @@ export const useStreamManager = (roomName: string) => {
     if (!source) return;
 
     try {
-      let stream: MediaStream;
+      let constraints: MediaStreamConstraints = { audio: true };
       if (source.type === 'video') {
-        stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-      } else {
-        stream = await navigator.mediaDevices.getUserMedia({ 
-          video: source.type === 'camera' ? { width: 1280, height: 720 } : false,
-          audio: true 
-        });
+        constraints = { video: true, audio: true };
+      } else if (source.type === 'camera') {
+        constraints = {
+          video: source.deviceId ? { deviceId: { exact: source.deviceId } } : { width: 1280, height: 720 },
+          audio: true
+        };
+      } else if (source.type === 'audio') {
+        constraints = {
+          audio: source.deviceId ? { deviceId: { exact: source.deviceId } } : true,
+          video: false
+        };
       }
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       setSources(prev => prev.map(s => s.id === id ? { ...s, stream, isActive: true, isEnabled: true } : s));
       return true;
     } catch (err) {
+      console.error('Failed to activate source', err);
       return false;
     }
   }, []);
@@ -244,6 +253,7 @@ export const useStreamManager = (roomName: string) => {
         dbId: data.id,
         label: data.label,
         type: data.type as any,
+        deviceId: data.device_id,
         isActive: false,
         isEnabled: true
       };
@@ -263,6 +273,15 @@ export const useStreamManager = (roomName: string) => {
     setSources(prev => prev.map(s => s.id === id ? { ...s, label } : s));
   }, []);
 
+  const updateSourceDeviceId = useCallback((id: string, deviceId: string) => {
+    setSources(prev => prev.map(s => s.id === id ? { ...s, deviceId } : s));
+    // Persist to DB
+    const source = sourcesRef.current.find(s => s.id === id);
+    if (source?.dbId) {
+      supabase.from('sources').update({ device_id: deviceId }).eq('id', source.dbId);
+    }
+  }, []);
+
   const reconnectAll = useCallback(async () => {
     const enabledButInactive = sources.filter(s => s.isEnabled && !s.isActive);
     for (const s of enabledButInactive) {
@@ -280,6 +299,7 @@ export const useStreamManager = (roomName: string) => {
     deactivateSource,
     removeSource,
     updateSourceLabel,
+    updateSourceDeviceId,
     reconnectAll,
     saveToDatabase
   };

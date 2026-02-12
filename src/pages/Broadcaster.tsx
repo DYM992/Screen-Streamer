@@ -38,6 +38,7 @@ const Broadcaster = () => {
     removeSource,
     reconnectAll,
     saveToDatabase,
+    updateSourceDeviceId,
   } = useStreamManager(roomName);
 
   const commitRoomIdChange = async () => {
@@ -278,6 +279,7 @@ const Broadcaster = () => {
                     onRename={updateSourceLabel}
                     onActivate={activateSource}
                     onDeactivate={deactivateSource}
+                    onDeviceChange={updateSourceDeviceId}
                   />
                 ))}
               </div>
