@@ -15,6 +15,7 @@ const Broadcaster = () => {
   const [roomName, setRoomName] = useState(initialRoom);
   // Separate editing state so we don't trigger a load on every keystroke
   const [editingRoomId, setEditingRoomId] = useState(initialRoom);
+  const [isEditingRoomId, setIsEditingRoomId] = useState(false); // new toggle
 
   const {
     sources,
@@ -30,9 +31,12 @@ const Broadcaster = () => {
     saveToDatabase,
   } = useStreamManager(roomName);
 
-  // Persist rename when user leaves the input (blur or Enter) or clicks Rename button
+  // Persist rename when user clicks the save button
   const commitRoomIdChange = async () => {
-    if (editingRoomId === roomName) return; // nothing changed
+    if (editingRoomId === roomName) {
+      setIsEditingRoomId(false);
+      return; // nothing changed
+    }
 
     const oldId = roomName;
     const newId = editingRoomId.trim();
@@ -40,6 +44,7 @@ const Broadcaster = () => {
     if (!newId) {
       // revert UI if empty
       setEditingRoomId(oldId);
+      setIsEditingRoomId(false);
       return;
     }
 
@@ -68,6 +73,7 @@ const Broadcaster = () => {
     // 3️⃣ Update local state & URL so the manager loads the new room
     setRoomName(newId);
     setSearchParams({ room: newId }, { replace: true });
+    setIsEditingRoomId(false);
   };
 
   // Handle input change without triggering a load
@@ -75,15 +81,27 @@ const Broadcaster = () => {
     setEditingRoomId(e.target.value);
   };
 
-  // Save on blur
+  // Save on blur (only if currently editing)
   const handleRoomIdBlur = async () => {
-    await commitRoomIdChange();
+    if (isEditingRoomId) {
+      await commitRoomIdChange();
+    }
   };
 
   // Save on Enter key
   const handleRoomIdKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.target.blur(); // trigger blur handler
+    }
+  };
+
+  // Toggle edit mode when the edit button is clicked
+  const toggleEditMode = async () => {
+    if (isEditingRoomId) {
+      // Save changes
+      await commitRoomIdChange();
+    } else {
+      setIsEditingRoomId(true);
     }
   };
 
@@ -140,16 +158,16 @@ const Broadcaster = () => {
                   onChange={handleRoomIdChange}
                   onBlur={handleRoomIdBlur}
                   onKeyDown={handleRoomIdKeyDown}
-                  disabled={isBroadcasting}
+                  disabled={!isEditingRoomId || isBroadcasting}
                   className="bg-transparent border-none focus:ring-0 text-sm font-mono w-32 p-0 disabled:opacity-50"
                 />
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={commitRoomIdChange}
+                  onClick={toggleEditMode}
                   disabled={isBroadcasting}
                   className="h-8 w-8 text-indigo-400 hover:text-white"
-                  title="Rename Room"
+                  title={isEditingRoomId ? "Save Room ID" : "Rename Room"}
                 >
                   <Edit2 className="w-4 h-4" />
                 </Button>
