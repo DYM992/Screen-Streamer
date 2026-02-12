@@ -19,7 +19,6 @@ export const useStreamManager = (roomName: string) => {
 
   useEffect(() => {
     sourcesRef.current = sources;
-    // Save configuration to localStorage (metadata only)
     if (roomName) {
       const metadata = sources.map(s => ({
         id: s.id,
@@ -29,7 +28,6 @@ export const useStreamManager = (roomName: string) => {
       }));
       localStorage.setItem(`room_${roomName}`, JSON.stringify(metadata));
       
-      // Update global rooms list for dashboard
       const rooms = JSON.parse(localStorage.getItem('streamsync_rooms') || '[]');
       if (!rooms.includes(roomName)) {
         localStorage.setItem('streamsync_rooms', JSON.stringify([roomName, ...rooms].slice(0, 5)));
@@ -50,10 +48,11 @@ export const useStreamManager = (roomName: string) => {
             params.encodings = [{}];
           }
           
-          params.encodings[0].scaleResolutionDownBy = source.scaleFactor || 1.0;
+          // Keep resolution 1:1
+          params.encodings[0].scaleResolutionDownBy = 1.0;
           // @ts-ignore
-          params.degradationPreference = 'maintain-framerate';
-          params.encodings[0].maxBitrate = 8000000;
+          params.degradationPreference = 'maintain-resolution';
+          params.encodings[0].maxBitrate = 10000000; // 10Mbps for high quality
           params.encodings[0].maxFramerate = 60;
           
           sender.setParameters(params).catch(() => {});
@@ -122,20 +121,25 @@ export const useStreamManager = (roomName: string) => {
       });
       stream.getTracks().forEach(optimizeTrack);
       const id = `v-${Math.random().toString(36).substr(2, 5)}`;
-      setSources(prev => [...prev, { id, label: "Screen Capture", type: 'video', stream, scaleFactor: 1.5 }]);
-      toast.success("Screen added");
+      setSources(prev => [...prev, { id, label: "Screen Capture", type: 'video', stream }]);
+      toast.success("Screen added at full resolution");
     } catch (err) {}
   }, []);
 
   const addCameraSource = useCallback(async (deviceId?: string) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { deviceId: deviceId ? { exact: deviceId } : undefined, frameRate: { ideal: 30 } },
+        video: { 
+          deviceId: deviceId ? { exact: deviceId } : undefined, 
+          frameRate: { ideal: 60 },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        },
         audio: false 
       });
       const id = `c-${Math.random().toString(36).substr(2, 5)}`;
       setSources(prev => [...prev, { id, label: "Camera", type: 'camera', stream, deviceId }]);
-      toast.success("Camera added");
+      toast.success("Camera added at full resolution");
     } catch (err) {
       toast.error("Camera access failed");
     }

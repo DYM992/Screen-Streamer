@@ -1,194 +1,99 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Peer from 'peerjs';
-import { toast } from "sonner";
 
-export interface StreamSource {
+interface RemoteSource {
   id: string;
   label: string;
-  type: 'video' | 'audio' | 'camera';
+  type: 'video' | 'audio';
   stream: MediaStream;
-  scaleFactor?: number;
-  deviceId?: string;
 }
 
-export const useStreamManager = (roomName: string) => {
-  const [peer, setPeer] = useState<Peer | null>(null);
-  const [sources, setSources] = useState<StreamSource[]>([]);
-  const [connections, setConnections] = useState<Set<string>>(new Set());
-  const sourcesRef = useRef<StreamSource[]>([]);
+const Receiver = () => {
+  const [searchParams] = useSearchParams();
+  const room = searchParams.get('room');
+  const targetSourceId = searchParams.get('sourceId');
+  const [sources, setSources] = useState<RemoteSource[]>([]);
+  const [status, setStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
+  const peerRef = useRef<Peer | null>(null);
 
   useEffect(() => {
-    sourcesRef.current = sources;
-    // Save configuration to localStorage (metadata only)
-    if (roomName) {
-      const metadata = sources.map(s => ({
-        id: s.id,
-        label: s.label,
-        type: s.type,
-        deviceId: s.deviceId
-      }));
-      localStorage.setItem(`room_${roomName}`, JSON.stringify(metadata));
-      
-      // Update global rooms list for dashboard
-      const rooms = JSON.parse(localStorage.getItem('streamsync_rooms') || '[]');
-      if (!rooms.includes(roomName)) {
-        localStorage.setItem('streamsync_rooms', JSON.stringify([roomName, ...rooms].slice(0, 5)));
-      }
+    if (!room) {
+      setStatus('error');
+      return;
     }
-  }, [sources, roomName]);
 
-  const updateEncodingParameters = useCallback((mediaCall: any, source: StreamSource) => {
-    const applyParams = () => {
-      // @ts-ignore
-      const pc = mediaCall.peerConnection as RTCPeerConnection;
-      if (!pc) return;
+    const peer = new Peer();
+    peerRef.current = peer;
 
-      pc.getSenders().forEach(sender => {
-        if (sender.track?.kind === 'video') {
-          const params = sender.getParameters();
-          if (!params.encodings || params.encodings.length === 0) {
-            params.encodings = [{}];
-          }
-          
-          params.encodings[0].scaleResolutionDownBy = source.scaleFactor || 1.0;
+    peer.on('open', () => {
+      setStatus('connected');
+      peer.on('call', (incomingCall) => {
+        incomingCall.answer();
+        incomingCall.on('stream', (remoteStream) => {
           // @ts-ignore
-          params.degradationPreference = 'maintain-framerate';
-          params.encodings[0].maxBitrate = 8000000;
-          params.encodings[0].maxFramerate = 60;
-          
-          sender.setParameters(params).catch(() => {});
-        }
-      });
-    };
+          const pc = incomingCall.peerConnection as RTCPeerConnection;
+          if (pc) {
+            pc.getReceivers().forEach(receiver => {
+              // @ts-ignore
+              if ('playoutDelayHint' in receiver) receiver.playoutDelayHint = 0.1; 
+            });
+          }
 
-    const checkInterval = setInterval(() => {
-      // @ts-ignore
-      const pc = mediaCall.peerConnection as RTCPeerConnection;
-      if (pc && pc.iceConnectionState === 'connected') {
-        applyParams();
-        clearInterval(checkInterval);
-      }
-    }, 500);
-    setTimeout(() => clearInterval(checkInterval), 10000);
-  }, []);
+          const metadata = (incomingCall as any).metadata || {};
+          const newSource: RemoteSource = {
+            id: metadata.id || `remote-${Date.now()}`,
+            label: metadata.label || 'Remote Stream',
+            type: metadata.type || 'video',
+            stream: remoteStream
+          };
 
-  useEffect(() => {
-    if (!roomName) return;
-
-    const newPeer = new Peer(roomName, {
-      debug: 1,
-      config: {
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-      }
-    });
-
-    newPeer.on('connection', (conn) => {
-      setConnections(prev => new Set(prev).add(conn.peer));
-      conn.on('close', () => {
-        setConnections(prev => {
-          const next = new Set(prev);
-          next.delete(conn.peer);
-          return next;
+          setSources(prev => {
+            if (prev.find(s => s.id === newSource.id)) return prev;
+            return [...prev, newSource];
+          });
         });
       });
+      peer.call(room, new MediaStream()); 
     });
 
-    newPeer.on('call', (call) => {
-      call.answer();
-      sourcesRef.current.forEach(source => {
-        const mediaCall = newPeer.call(call.peer, source.stream, {
-          metadata: { id: source.id, label: source.label, type: source.type === 'camera' ? 'video' : source.type }
-        });
-        updateEncodingParameters(mediaCall, source);
-      });
-    });
+    peer.on('error', () => setStatus('error'));
+    return () => peer.destroy();
+  }, [room]);
 
-    setPeer(newPeer);
-    return () => newPeer.destroy();
-  }, [roomName, updateEncodingParameters]);
+  const displayedSources = targetSourceId 
+    ? sources.filter(s => s.id === targetSourceId)
+    : sources;
 
-  const optimizeTrack = (track: MediaStreamTrack) => {
-    if (track.kind === 'video') {
-      // @ts-ignore
-      if ('contentHint' in track) track.contentHint = 'motion';
-    }
-  };
+  if (status === 'error') return null; // Keep it clean for OBS
+  if (status === 'connecting') return null; // Keep it clean for OBS
 
-  const addScreenSource = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: { frameRate: { ideal: 60 } },
-        audio: true
-      });
-      stream.getTracks().forEach(optimizeTrack);
-      const id = `v-${Math.random().toString(36).substr(2, 5)}`;
-      setSources(prev => [...prev, { id, label: "Screen Capture", type: 'video', stream, scaleFactor: 1 }]);
-      toast.success("Screen added");
-    } catch (err) {}
-  }, []);
-
-  const addCameraSource = useCallback(async (deviceId?: string) => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { deviceId: deviceId ? { exact: deviceId } : undefined, frameRate: { ideal: 30 } },
-        audio: false 
-      });
-      const id = `c-${Math.random().toString(36).substr(2, 5)}`;
-      setSources(prev => [...prev, { id, label: "Camera", type: 'camera', stream, deviceId }]);
-      toast.success("Camera added");
-    } catch (err) {
-      toast.error("Camera access failed");
-    }
-  }, []);
-
-  const addMicSource = useCallback(async (deviceId?: string) => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: { deviceId: deviceId ? { exact: deviceId } : undefined } 
-      });
-      const id = `a-${Math.random().toString(36).substr(2, 5)}`;
-      setSources(prev => [...prev, { id, label: "Microphone", type: 'audio', stream, deviceId }]);
-      toast.success("Microphone added");
-    } catch (err) {
-      toast.error("Mic access failed");
-    }
-  }, []);
-
-  const replaceSourceStream = useCallback(async (id: string, type: 'video' | 'audio' | 'camera', deviceId?: string) => {
-    try {
-      let newStream: MediaStream;
-      if (type === 'video') {
-        newStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-      } else if (type === 'camera') {
-        newStream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: deviceId ? { exact: deviceId } : undefined } });
-      } else {
-        newStream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: deviceId ? { exact: deviceId } : undefined } });
-      }
-      newStream.getTracks().forEach(optimizeTrack);
-      setSources(prev => prev.map(s => {
-        if (s.id === id) {
-          s.stream.getTracks().forEach(t => t.stop());
-          return { ...s, stream: newStream, deviceId };
-        }
-        return s;
-      }));
-      toast.success("Source updated");
-    } catch (err) {
-      toast.error("Update failed");
-    }
-  }, []);
-
-  const updateSourceLabel = useCallback((id: string, label: string) => {
-    setSources(prev => prev.map(s => s.id === id ? { ...s, label } : s));
-  }, []);
-
-  const removeSource = useCallback((id: string) => {
-    setSources(prev => {
-      const source = prev.find(s => s.id === id);
-      if (source) source.stream.getTracks().forEach(t => t.stop());
-      return prev.filter(s => s.id !== id);
-    });
-  }, []);
-
-  return { sources, connections: connections.size, addScreenSource, addCameraSource, addMicSource, replaceSourceStream, updateSourceLabel, removeSource };
+  return (
+    <div className="fixed inset-0 bg-transparent overflow-hidden">
+      <div className="grid grid-cols-1 w-full h-full">
+        {displayedSources.map(source => (
+          <div key={source.id} className="relative w-full h-full bg-transparent">
+            {source.type === 'video' ? (
+              <video 
+                autoPlay 
+                playsInline 
+                muted 
+                controls={false}
+                ref={el => { if (el && el.srcObject !== source.stream) el.srcObject = source.stream; }}
+                className="w-full h-full object-contain bg-transparent"
+              />
+            ) : (
+              /* Audio only sources render nothing visible to avoid black boxes in OBS */
+              <audio 
+                autoPlay 
+                ref={el => { if (el && el.srcObject !== source.stream) el.srcObject = source.stream; }} 
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 };
+
+export default Receiver;
