@@ -18,7 +18,7 @@ export const useStreamManager = (roomName: string) => {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const sourcesRef = useRef<StreamSource[]>([]);
 
-  // Load saved configuration on mount
+  // Load saved configuration
   useEffect(() => {
     const saved = localStorage.getItem(`room_meta_${roomName}`);
     if (saved) {
@@ -27,7 +27,7 @@ export const useStreamManager = (roomName: string) => {
     }
   }, [roomName]);
 
-  // Save configuration whenever sources change
+  // Save configuration and update room list
   useEffect(() => {
     sourcesRef.current = sources;
     if (roomName && sources.length > 0) {
@@ -39,42 +39,48 @@ export const useStreamManager = (roomName: string) => {
       }));
       localStorage.setItem(`room_meta_${roomName}`, JSON.stringify(metadata));
       
-      const rooms = JSON.parse(localStorage.getItem('streamsync_rooms') || '[]');
-      if (!rooms.includes(roomName)) {
-        localStorage.setItem('streamsync_rooms', JSON.stringify([roomName, ...rooms].slice(0, 5)));
+      const rooms = JSON.parse(localStorage.getItem('streamsync_rooms_v2') || '{}');
+      if (!rooms[roomName]) {
+        rooms[roomName] = { id: roomName, createdAt: new Date().toISOString() };
+        localStorage.setItem('streamsync_rooms_v2', JSON.stringify(rooms));
       }
     }
   }, [sources, roomName]);
 
-  const updateEncodingParameters = useCallback((mediaCall: any) => {
-    const applyParams = () => {
-      // @ts-ignore
-      const pc = mediaCall.peerConnection as RTCPeerConnection;
-      if (!pc) return;
+  const captureThumbnail = useCallback(() => {
+    const videoSource = sourcesRef.current.find(s => s.isActive && (s.type === 'video' || s.type === 'camera'));
+    if (!videoSource?.stream) return null;
 
-      pc.getSenders().forEach(sender => {
-        if (sender.track?.kind === 'video') {
-          const params = sender.getParameters();
-          if (!params.encodings || params.encodings.length === 0) params.encodings = [{}];
-          params.encodings[0].scaleResolutionDownBy = 1.0;
-          // @ts-ignore
-          params.degradationPreference = 'maintain-resolution';
-          params.encodings[0].maxBitrate = 10000000;
-          sender.setParameters(params).catch(() => {});
-        }
-      });
-    };
+    const videoTrack = videoSource.stream.getVideoTracks()[0];
+    if (!videoTrack) return null;
 
-    const checkInterval = setInterval(() => {
-      // @ts-ignore
-      const pc = mediaCall.peerConnection as RTCPeerConnection;
-      if (pc && pc.iceConnectionState === 'connected') {
-        applyParams();
-        clearInterval(checkInterval);
-      }
-    }, 500);
-    setTimeout(() => clearInterval(checkInterval), 10000);
-  }, []);
+    const canvas = document.createElement('canvas');
+    const video = document.createElement('video');
+    video.srcObject = videoSource.stream;
+    
+    return new Promise<string | null>((resolve) => {
+      video.onloadedmetadata = () => {
+        video.play();
+        canvas.width = 480;
+        canvas.height = 270;
+        const ctx = canvas.getContext('2d');
+        setTimeout(() => {
+          ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          
+          // Update local storage for now, will move to Supabase
+          const rooms = JSON.parse(localStorage.getItem('streamsync_rooms_v2') || '{}');
+          if (rooms[roomName]) {
+            rooms[roomName].thumbnail = dataUrl;
+            localStorage.setItem('streamsync_rooms_v2', JSON.stringify(rooms));
+          }
+          
+          video.srcObject = null;
+          resolve(dataUrl);
+        }, 100);
+      };
+    });
+  }, [roomName]);
 
   const toggleBroadcasting = useCallback(() => {
     if (isBroadcasting) {
@@ -92,39 +98,29 @@ export const useStreamManager = (roomName: string) => {
       newPeer.on('open', () => {
         setIsBroadcasting(true);
         toast.success("Broadcasting live!");
+        // Initial thumbnail capture
+        setTimeout(captureThumbnail, 2000);
       });
 
       newPeer.on('connection', (conn) => {
         setConnections(prev => new Set(prev).add(conn.peer));
-        conn.on('close', () => setConnections(prev => {
-          const next = new Set(prev);
-          next.delete(conn.peer);
-          return next;
-        }));
       });
 
       newPeer.on('call', (call) => {
         call.answer();
         sourcesRef.current.forEach(source => {
           if (source.stream && source.isActive) {
-            const mediaCall = newPeer.call(call.peer, source.stream, {
+            newPeer.call(call.peer, source.stream, {
               metadata: { id: source.id, label: source.label, type: source.type === 'camera' ? 'video' : source.type }
             });
-            updateEncodingParameters(mediaCall);
           }
         });
       });
 
-      newPeer.on('error', (err) => {
-        if (err.type === 'unavailable-id') {
-          toast.error("Room ID already in use. Try another.");
-        }
-        setIsBroadcasting(false);
-      });
-
+      newPeer.on('error', () => setIsBroadcasting(false));
       setPeer(newPeer);
     }
-  }, [isBroadcasting, roomName, peer, updateEncodingParameters]);
+  }, [isBroadcasting, roomName, peer, captureThumbnail]);
 
   const activateSource = useCallback(async (id: string) => {
     const source = sourcesRef.current.find(s => s.id === id);
@@ -134,16 +130,12 @@ export const useStreamManager = (roomName: string) => {
       let stream: MediaStream;
       if (source.type === 'video') {
         stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-      } else if (source.type === 'camera') {
-        stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { deviceId: source.deviceId ? { exact: source.deviceId } : undefined, width: 1920, height: 1080 } 
-        });
       } else {
         stream = await navigator.mediaDevices.getUserMedia({ 
-          audio: { deviceId: source.deviceId ? { exact: source.deviceId } : undefined } 
+          video: source.type === 'camera' ? { width: 1280, height: 720 } : false,
+          audio: true 
         });
       }
-
       setSources(prev => prev.map(s => s.id === id ? { ...s, stream, isActive: true } : s));
       return true;
     } catch (err) {
@@ -155,7 +147,7 @@ export const useStreamManager = (roomName: string) => {
   const deactivateSource = useCallback((id: string) => {
     setSources(prev => prev.map(s => {
       if (s.id === id) {
-        if (s.stream) s.stream.getTracks().forEach(t => t.stop());
+        s.stream?.getTracks().forEach(t => t.stop());
         return { ...s, stream: undefined, isActive: false };
       }
       return s;
@@ -165,39 +157,17 @@ export const useStreamManager = (roomName: string) => {
   const addSource = useCallback(async (type: 'video' | 'audio' | 'camera') => {
     const id = `${type[0]}-${Math.random().toString(36).substr(2, 5)}`;
     const label = type.charAt(0).toUpperCase() + type.slice(1);
-    
-    // Add to state first so activateSource can find it
     setSources(prev => [...prev, { id, label, type, isActive: false }]);
-    
-    // Small delay to ensure state is updated before activation
     setTimeout(() => activateSource(id), 50);
   }, [activateSource]);
 
   const removeSource = useCallback((id: string) => {
     setSources(prev => {
       const source = prev.find(s => s.id === id);
-      if (source?.stream) source.stream.getTracks().forEach(t => t.stop());
+      source?.stream?.getTracks().forEach(t => t.stop());
       return prev.filter(s => s.id !== id);
     });
   }, []);
-
-  const updateSourceLabel = useCallback((id: string, label: string) => {
-    setSources(prev => prev.map(s => s.id === id ? { ...s, label } : s));
-  }, []);
-
-  const reconnectAll = useCallback(async () => {
-    const inactive = sources.filter(s => !s.isActive);
-    if (inactive.length === 0) return;
-    
-    toast.promise(
-      Promise.all(inactive.map(s => activateSource(s.id))),
-      {
-        loading: 'Reconnecting sources...',
-        success: 'Sources reconnected',
-        error: 'Some sources failed to reconnect'
-      }
-    );
-  }, [sources, activateSource]);
 
   return { 
     sources, 
@@ -208,7 +178,6 @@ export const useStreamManager = (roomName: string) => {
     activateSource,
     deactivateSource,
     removeSource,
-    updateSourceLabel,
-    reconnectAll
+    captureThumbnail
   };
 };
