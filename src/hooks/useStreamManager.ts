@@ -212,21 +212,31 @@ export const useStreamManager = (roomName: string) => {
     try {
       let stream: MediaStream;
 
-      // --------- NEW LOGIC FOR SCREEN SHARE ----------
+      // --------- SCREEN SHARE ----------
       if (source.type === "video") {
-        // Screen share – use getDisplayMedia
+        // Screen share – use getDisplayMedia (video + audio if supported)
         stream = await navigator.mediaDevices.getDisplayMedia({
           video: true,
           audio: true,
         });
-      } else if (source.type === "appAudio") {
-        // Application (system) audio – use getDisplayMedia audio only
-        stream = await navigator.mediaDevices.getDisplayMedia({
-          video: false,
-          audio: true,
-        });
-      } else if (source.type === "camera") {
-        // Camera – optionally use a specific device
+      }
+      // --------- APPLICATION AUDIO ----------
+      else if (source.type === "appAudio") {
+        // Try to capture system audio via getDisplayMedia (audio only)
+        try {
+          stream = await navigator.mediaDevices.getDisplayMedia({
+            video: false,
+            audio: true,
+          });
+        } catch (err) {
+          // NotSupportedError or other – inform user and abort activation
+          console.error('App audio capture not supported:', err);
+          toast.error('Application audio capture is not supported in this browser.');
+          return false;
+        }
+      }
+      // --------- CAMERA ----------
+      else if (source.type === "camera") {
         const constraints: MediaStreamConstraints = {
           video: source.deviceId
             ? { deviceId: { exact: source.deviceId } }
@@ -234,8 +244,9 @@ export const useStreamManager = (roomName: string) => {
           audio: true,
         };
         stream = await navigator.mediaDevices.getUserMedia(constraints);
-      } else {
-        // Audio only (microphone)
+      }
+      // --------- MICROPHONE ----------
+      else {
         const constraints: MediaStreamConstraints = {
           audio: source.deviceId ? { deviceId: { exact: source.deviceId } } : true,
           video: false,
