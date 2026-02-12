@@ -30,7 +30,7 @@ const Broadcaster = () => {
     saveToDatabase,
   } = useStreamManager(roomName);
 
-  // Persist rename when user leaves the input (blur or Enter)
+  // Persist rename when user leaves the input (blur or Enter) or clicks Rename button
   const commitRoomIdChange = async () => {
     if (editingRoomId === roomName) return; // nothing changed
 
@@ -122,7 +122,7 @@ const Broadcaster = () => {
 
           <div className="flex flex-wrap items-center gap-4">
             <div className="bg-slate-900/50 border border-slate-800 p-1.5 rounded-2xl flex items-center gap-4 pr-4">
-              <div className="bg-slate-950 px-4 py-2 rounded-xl border border-slate-800">
+              <div className="bg-slate-950 px-4 py-2 rounded-xl border border-slate-800 flex items-center gap-2">
                 <Label className="text-[10px] text-slate-500 uppercase font-black block mb-1">Room ID</Label>
                 <input
                   value={editingRoomId}
@@ -132,6 +132,16 @@ const Broadcaster = () => {
                   disabled={isBroadcasting}
                   className="bg-transparent border-none focus:ring-0 text-sm font-mono w-32 p-0 disabled:opacity-50"
                 />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={commitRoomIdChange}
+                  disabled={isBroadcasting}
+                  className="h-8 w-8 text-indigo-400 hover:text-white"
+                  title="Rename Room"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </Button>
               </div>
               <div className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${isBroadcasting ? 'bg-emerald-500 animate-pulse' : 'bg-slate-700'}`} />
