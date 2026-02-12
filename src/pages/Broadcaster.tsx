@@ -47,8 +47,8 @@ const Broadcaster = () => {
 
     const { error: sourceError } = await supabase
       .from('sources')
-      .update({ room_id: oldId })
-      .eq('room_id', newId);
+      .update({ room_id: newId })
+      .eq('room_id', oldId);
 
     if (sourceError) {
       console.error('Failed to update sources during rename:', sourceError);
@@ -57,8 +57,8 @@ const Broadcaster = () => {
 
     const { error: roomError } = await supabase
       .from('rooms')
-      .update({ id: oldId })
-      .eq('id', newId);
+      .update({ id: newId })
+      .eq('id', oldId);
 
     if (roomError) {
       console.error('Failed to rename room:', roomError);
