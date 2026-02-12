@@ -51,6 +51,7 @@ const Broadcaster = () => {
       .eq('id', newId);
 
     // Update local state so the manager loads the new room
+    setRoomName(newId)
   };
 
   // Handle input change without triggering a load
