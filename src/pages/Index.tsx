@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Radio, Tv, ShieldCheck, History, ArrowRight, Plus, Trash2, Monitor, Play, Square } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import "../globals.css";
 
 interface RoomData {
   id: string;
