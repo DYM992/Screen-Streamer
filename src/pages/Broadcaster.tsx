@@ -164,7 +164,7 @@ const Broadcaster = () => {
   const hasInactiveSources = sources.some(s => !s.isActive);
 
   return (
-    <div className="min-h-screen bg-transparent text-slate-50 selection:bg-indigo-500/30">
+    <div className="min-h-screen bg-slate-950 text-slate-50 selection:bg-indigo-500/30">
       <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-10">
 
         <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">

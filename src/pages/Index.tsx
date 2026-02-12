@@ -66,7 +66,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-transparent flex items-center justify-center p-6">
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
       <div className="max-w-6xl w-full space-y-12 py-12">
         <div className="text-center space-y-4">
           <h1 className="text-7xl font-black tracking-tighter text-white">
@@ -172,7 +172,7 @@ const Index = () => {
                           variant="ghost" 
                           size="icon" 
                           onClick={(e) => deleteRoom(room.id, e)}
-                          className="h-8 w-8 bg-slate-800/50 text-slate-400 hover:bg-red-500 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
+                          className="h-8 w-8 rounded-full bg-slate-800/50 text-slate-400 hover:bg-red-500 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
