@@ -82,7 +82,6 @@ const SourceCard = ({
       }`}
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-        {/* Left side – icon, label and edit */}
         <div className="flex items-center gap-2 flex-1 mr-2">
           {getIcon()}
           {isEditing ? (
@@ -119,7 +118,6 @@ const SourceCard = ({
           )}
         </div>
 
-        {/* Right side – action icons, right‑aligned */}
         <div className="flex gap-1 items-center ml-auto">
           <Button
             variant="ghost"
@@ -167,7 +165,7 @@ const SourceCard = ({
                   autoPlay
                   muted
                   playsInline
-                  className="w-full h-full object-contain max-w-full max-h-full"
+                  className="w-full h-auto max-h-48 object-contain bg-black rounded-xl"
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full gap-3 bg-slate-950/50">
@@ -202,7 +200,6 @@ const SourceCard = ({
           )}
         </div>
 
-        {/* Device selector – always visible for camera/audio */}
         {(source.type === "camera" || source.type === "audio") && (
           <div className="mt-2">
             <DeviceSelector
@@ -213,12 +210,10 @@ const SourceCard = ({
           </div>
         )}
 
-        {/* Dropdown to (‑select video source */}
         {source.type === "video" && (
           <div className="mt-2">
             <Select
               onValueChange={async () => {
-                // Re‑activate the same source to let the user pick a new screen/window
                 await onActivate(source.id);
               }}
             >

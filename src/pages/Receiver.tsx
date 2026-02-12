@@ -69,10 +69,10 @@ const Receiver = () => {
   if (status === 'connecting') return null;
 
   return (
-    <div className="fixed inset-0 bg-transparent overflow-hidden">
-      <div className="grid grid-cols-1 w-full h-full">
+    <div className="fixed inset-0 bg-transparent overflow-hidden flex items-center justify-center p-4">
+      <div className="grid grid-cols-1 w-full max-w-screen-lg gap-4">
         {displayedSources.map(source => (
-          <div key={source.id} className={`relative w-full h-full bg-transparent ${source.type === 'audio' ? 'w-0 h-0 overflow-hidden' : ''}`}>
+          <div key={source.id} className={`relative ${source.type === 'audio' ? 'h-0 overflow-hidden' : ''}`}>
             {source.type === 'video' ? (
               <video 
                 autoPlay 
@@ -80,7 +80,7 @@ const Receiver = () => {
                 muted 
                 controls={false}
                 ref={el => { if (el && el.srcObject !== source.stream) el.srcObject = source.stream; }}
-                className="w-full h-full object-contain bg-transparent"
+                className="w-full h-auto max-h-[80vh] object-contain bg-black rounded-xl"
               />
             ) : (
               <audio 
