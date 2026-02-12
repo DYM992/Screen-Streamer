@@ -33,7 +33,11 @@ const Broadcaster = () => {
 
   // Persist rename when user leaves the input (blur or Enter) or clicks Rename button
   const commitRoomIdChange = async () => {
-    if (editingRoomId === roomName) return; // nothing changed
+    isChangingName = true;
+    if (editingRoomId === roomName){
+      isChangingName = false;
+      return; // nothing changed
+    } 
 
     const newId = editingRoomId.trim();
 
@@ -50,6 +54,7 @@ const Broadcaster = () => {
       .eq('id', newId);
 
     // Update local state so the manager loads the new room
+    isChangingName = false;
   };
 
   // Handle input change without triggering a load
@@ -122,7 +127,7 @@ const Broadcaster = () => {
                   onChange={handleRoomIdChange}
                   onBlur={handleRoomIdBlur}
                   onKeyDown={handleRoomIdKeyDown}
-                  disabled={isBroadcasting}
+                  disabled={isChangingName}
                   className="bg-transparent border-none focus:ring-0 text-sm font-mono w-32 p-0 disabled:opacity-50"
                 />
                 <Button
