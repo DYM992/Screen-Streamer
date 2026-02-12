@@ -43,13 +43,13 @@ const Broadcaster = () => {
       return;
     }
 
-    // 1️⃣ Move all sources to the new room ID
+    // Move all sources to the new room ID
     await supabase
       .from('sources')
       .update({ room_id: newId })
       .eq('room_id', oldId);
 
-    // 2️⃣ Update the room's primary key (id) to the new ID
+    // Update the room's primary key (id) to the new ID
     await supabase
       .from('rooms')
       .update({ id: newId })
@@ -77,19 +77,17 @@ const Broadcaster = () => {
   };
 
   useEffect(() => {
+    // Ensure the URL always contains the room param
     if (!searchParams.get('room')) {
       setSearchParams({ room: roomName }, { replace: true });
     }
 
-    // Auto‑start from dashboard (preserves previous logic)
+    // Auto‑start from dashboard: trigger broadcast immediately
     if (searchParams.get('autoStart') === "true" && !isBroadcasting) {
-      const timer = setTimeout(() => {
-        toggleBroadcasting();
-        const newParams = new URLSearchParams(searchParams);
-        newParams.delete("autoStart");
-        setSearchParams(newParams, { replace: true });
-      }, 1000);
-      return () => clearTimeout(timer);
+      toggleBroadcasting();
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("autoStart");
+      setSearchParams(newParams, { replace: true });
     }
   }, [roomName, isBroadcasting]);
 
