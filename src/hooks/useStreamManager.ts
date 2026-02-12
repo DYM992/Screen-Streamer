@@ -203,13 +203,15 @@ export const useStreamManager = (roomName: string) => {
       }
 
       // Persist deviceId for camera sources after we have a stream
+      let newDeviceId = source.deviceId;
       if (source.type === 'camera') {
         const videoTrack = stream.getVideoTracks()[0];
         const settings = videoTrack?.getSettings();
-        const newDeviceId = settings?.deviceId;
+        newDeviceId = settings?.deviceId;
         if (newDeviceId && newDeviceId !== source.deviceId) {
-          // Update in‑memory and DB
-          source.deviceId = newDeviceId;
+          // Update in‑memory state
+          setSources(prev => prev.map(s => s.id === id ? { ...s, deviceId: newDeviceId } : s));
+          // Update DB
           if (source.dbId) {
             await supabase.from('sources')
               .update({ device_id: newDeviceId })
@@ -218,6 +220,7 @@ export const useStreamManager = (roomName: string) => {
         }
       }
 
+      // Update activation state and enabled flag
       setSources(prev => prev.map(s => s.id === id ? { ...s, stream, isActive: true, isEnabled: true } : s));
       // Persist enabled state
       if (source.dbId) {
