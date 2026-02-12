@@ -45,15 +45,26 @@ const Broadcaster = () => {
       return;
     }
 
-    // 1️⃣ Create the new room row first so foreign‑key constraints are satisfied
-    const { error: createRoomError } = await supabase
+    // 1️⃣ Check if the target room already exists
+    const { data: existingRoom } = await supabase
       .from('rooms')
-      .insert({ id: newId })
+      .select('id')
+      .eq('id', newId)
       .single();
 
-    if (createRoomError) {
-      console.error('Failed to create new room during rename:', createRoomError);
-      return;
+    const roomExists = !!existingRoom;
+
+    if (!roomExists) {
+      // Create the new room row first (no duplicate key risk)
+      const { error: createRoomError } = await supabase
+        .from('rooms')
+        .insert({ id: newId })
+        .single();
+
+      if (createRoomError) {
+        console.error('Failed to create new room during rename:', createRoomError);
+        return;
+      }
     }
 
     // 2️⃣ Update all sources to point to the new room id
@@ -64,12 +75,14 @@ const Broadcaster = () => {
 
     if (sourceError) {
       console.error('Failed to update sources during rename:', sourceError);
-      // Clean up: delete the newly created room to avoid orphaned entries
-      await supabase.from('rooms').delete().eq('id', newId);
+      // If we created a brand‑new room, clean it up to avoid orphaned rows
+      if (!roomExists) {
+        await supabase.from('rooms').delete().eq('id', newId);
+      }
       return;
     }
 
-    // 3️⃣ Delete the old room row
+    // 3️⃣ Delete the old room row (only if it still exists)
     const { error: deleteRoomError } = await supabase
       .from('rooms')
       .delete()
@@ -77,7 +90,7 @@ const Broadcaster = () => {
 
     if (deleteRoomError) {
       console.error('Failed to delete old room after rename:', deleteRoomError);
-      // Not fatal – the new room exists and sources point to it
+      // Not fatal – the new room exists and sources now point to it
     }
 
     // 4️⃣ Update local state & URL
