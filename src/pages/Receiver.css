@@ -1,0 +1,22 @@
+/* Remove all default margins */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Ensure full viewport sizing */
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  background: transparent !important;
+  overflow: hidden;
+}
+
+/* Remove default video styling issues */
+video {
+  display: block;
+  background: transparent !important;
+}
