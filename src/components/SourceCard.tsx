@@ -201,9 +201,9 @@ const SourceCard = ({
           )}
         </div>
 
-        {/* Dropdown – smooth height‑only animation with spacing */}
+        {/* Dropdown – always visible (no hover‑collapse) with spacing */}
         {(source.type === "camera" || source.type === "audio") && (
-          <div className="mt-2 overflow-hidden transition-[max-height] duration-500 ease-in-out group-hover:max-h-40 max-h-0">
+          <div className="mt-2 overflow-hidden transition-[max-height] duration-500 ease-in-out max-h-40">
             <DeviceSelector
               type={source.type as any}
               selectedDeviceId={source.deviceId}
