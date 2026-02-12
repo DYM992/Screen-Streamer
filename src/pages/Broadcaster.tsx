@@ -30,7 +30,7 @@ const Broadcaster = () => {
     saveToDatabase,
   } = useStreamManager(roomName);
 
-  const commitRoomIdChange = async () => {
+  const commitRoomIdChange = () => {
     if (editingRoomId === roomName) {
       setIsEditingRoomId(false);
       return;
