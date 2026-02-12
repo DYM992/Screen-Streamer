@@ -15,16 +15,24 @@ export const useStreamManager = (peerId?: string) => {
   const [connections, setConnections] = useState<Set<string>>(new Set());
   const sourcesRef = useRef<StreamSource[]>([]);
 
+  // Sync ref for peer callbacks to avoid stale closures
   useEffect(() => {
     sourcesRef.current = sources;
   }, [sources]);
 
+  // Initialize Peer
   useEffect(() => {
+    if (!peerId) return;
+
     const newPeer = new Peer(peerId, {
       debug: 1,
       config: {
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
       }
+    });
+
+    newPeer.on('open', (id) => {
+      console.log('Broadcaster active on room:', id);
     });
 
     newPeer.on('connection', (conn) => {
@@ -39,6 +47,10 @@ export const useStreamManager = (peerId?: string) => {
     });
 
     newPeer.on('call', (call) => {
+      console.log('Incoming call from receiver:', call.peer);
+      call.answer(); // Answer with nothing initially
+      
+      // Then push all current streams to the receiver
       sourcesRef.current.forEach(source => {
         newPeer.call(call.peer, source.stream, {
           metadata: { id: source.id, label: source.label, type: source.type }
@@ -46,12 +58,23 @@ export const useStreamManager = (peerId?: string) => {
       });
     });
 
+    newPeer.on('error', (err) => {
+      if (err.type === 'unavailable-id') {
+        toast.error("Room ID already taken. Try a different name.");
+      } else {
+        console.error('Peer error:', err);
+      }
+    });
+
     setPeer(newPeer);
-    return () => newPeer.destroy();
+    return () => {
+      newPeer.destroy();
+    };
   }, [peerId]);
 
   const addScreenSource = useCallback(async () => {
     try {
+      console.log("Requesting screen capture...");
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: { frameRate: 60 },
         audio: true
@@ -60,33 +83,38 @@ export const useStreamManager = (peerId?: string) => {
       const id = `v-${Math.random().toString(36).substr(2, 5)}`;
       const newSource: StreamSource = {
         id,
-        label: "Game/App Video",
+        label: "Screen Capture",
         type: 'video',
         stream
       };
 
       setSources(prev => [...prev, newSource]);
+      toast.success("Screen source added");
 
+      // Handle system audio if present
       if (stream.getAudioTracks().length > 0) {
         const audioId = `a-sys-${Math.random().toString(36).substr(2, 5)}`;
         const audioSource: StreamSource = {
           id: audioId,
-          label: "Game/App Audio",
+          label: "System Audio",
           type: 'audio',
           stream: new MediaStream(stream.getAudioTracks())
         };
         setSources(prev => [...prev, audioSource]);
       }
     } catch (err: any) {
-      toast.error("Capture cancelled or failed");
+      console.error("Screen capture error:", err);
+      toast.error(`Screen capture failed: ${err.name === 'NotAllowedError' ? 'Permission denied' : err.message}`);
     }
   }, []);
 
   const addMicSource = useCallback(async (deviceId?: string) => {
     try {
+      console.log("Requesting mic access...");
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: deviceId ? { deviceId: { exact: deviceId } } : true 
       });
+      
       const id = `a-mic-${Math.random().toString(36).substr(2, 5)}`;
       const newSource: StreamSource = {
         id,
@@ -95,8 +123,10 @@ export const useStreamManager = (peerId?: string) => {
         stream
       };
       setSources(prev => [...prev, newSource]);
+      toast.success("Microphone added");
     } catch (err: any) {
-      toast.error("Microphone access denied");
+      console.error("Mic access error:", err);
+      toast.error(`Mic access failed: ${err.name === 'NotAllowedError' ? 'Permission denied' : err.message}`);
     }
   }, []);
 
@@ -119,8 +149,8 @@ export const useStreamManager = (peerId?: string) => {
         return s;
       }));
       
-      toast.success("Source updated successfully");
-    } catch (err) {
+      toast.success("Source updated");
+    } catch (err: any) {
       toast.error("Failed to update source");
     }
   }, []);
@@ -135,6 +165,7 @@ export const useStreamManager = (peerId?: string) => {
       if (source) source.stream.getTracks().forEach(t => t.stop());
       return prev.filter(s => s.id !== id);
     });
+    toast.info("Source removed");
   }, []);
 
   return {
