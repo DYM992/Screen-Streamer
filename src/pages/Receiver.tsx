@@ -33,6 +33,23 @@ const Receiver = () => {
       
       peer.on('call', (incomingCall) => {
         incomingCall.answer();
+        
+        // Optimization: Apply jitter buffer hint to incoming tracks
+        // @ts-ignore - Accessing internal peerConnection
+        const pc = incomingCall.peerConnection as RTCPeerConnection;
+        if (pc) {
+          pc.ontrack = (event) => {
+            const receiver = event.receiver;
+            if (receiver) {
+              // Set a small 100ms delay to allow for jitter smoothing
+              // @ts-ignore - playoutDelayHint is a newer WebRTC feature
+              if ('playoutDelayHint' in receiver) {
+                receiver.playoutDelayHint = 0.1; 
+              }
+            }
+          };
+        }
+
         incomingCall.on('stream', (remoteStream) => {
           const metadata = (incomingCall as any).metadata || {};
           const newSource: RemoteSource = {
@@ -82,10 +99,7 @@ const Receiver = () => {
                 ref={el => { 
                   if (el && el.srcObject !== source.stream) {
                     el.srcObject = source.stream;
-                    // Force immediate playback and disable any internal buffering
                     el.play().catch(console.error);
-                    // @ts-ignore - some browsers support setting playback rate to keep up
-                    el.playbackRate = 1.0;
                   }
                 }}
                 className="w-full h-full object-contain"
