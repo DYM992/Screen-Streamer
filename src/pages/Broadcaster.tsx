@@ -130,7 +130,7 @@ const Broadcaster = () => {
                   size="sm"
                   onClick={commitRoomIdChange}
                   disabled={isBroadcasting}
-                  className="h-8 w-8 text-indigo-400 hover:text-white"
+                  className="h-8 w-16 text-indigo-400 hover:text-white"
                 >
                   Rename
                 </Button>
