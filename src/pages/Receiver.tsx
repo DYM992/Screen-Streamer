@@ -80,7 +80,7 @@ const Receiver = () => {
                 muted 
                 controls={false}
                 ref={el => { if (el && el.srcObject !== source.stream) el.srcObject = source.stream; }}
-                className="w-full h-full object-contain bg-transparent"
+                className="w-full h-full object-contain"
               />
             ) : (
               <audio 
