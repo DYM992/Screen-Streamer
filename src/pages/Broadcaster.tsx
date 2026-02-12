@@ -34,7 +34,6 @@ const Broadcaster = () => {
   const commitRoomIdChange = async () => {
     if (editingRoomId === roomName) return; // nothing changed
 
-    const oldId = roomName;
     const newId = editingRoomId.trim();
 
     if (!newId) {
@@ -42,11 +41,11 @@ const Broadcaster = () => {
       setEditingRoomId(oldId);
       return;
     }
-    
+
     // Update the room's primary key (id) to the new ID
     await supabase
       .from('rooms')
-      .update({ id: oldId })
+      .update({ id: roomName })
       .eq('id', newId);
 
     // Update local state so the manager loads the new room
