@@ -5,6 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Screen Streamer</title>
     <link rel="icon" href="/record.svg" type="image/svg+xml" />
+    <style>
+      /* Ensure the app fills the OBS browser source and has a transparent background */
+      html, body, #root {
+        height: 100%;
+        margin: 0;
+        background: transparent;
+        overflow: hidden;
+      }
+
+      /* Make video elements transparent where possible (e.g., for alpha channel) */
+      video {
+        background: transparent;
+      }
+
+      /* Remove any default outlines that might appear in OBS */
+      *:focus {
+        outline: none;
+      }
+    </style>
   </head>
 
   <body>
