@@ -19,7 +19,8 @@ export const useStreamManager = (roomName: string) => {
   const [sources, setSources] = useState<StreamSource[]>([]);
   const [connections, setConnections] = useState<Set<string>>(new Set());
   const [isBroadcasting, setIsBroadcasting] = useState(false);
-  
+  const [fps, setFps] = useState<number>(30); // default FPS
+
   const sourcesRef = useRef<StreamSource[]>([]);
   const isBroadcastingRef = useRef(false);
 
@@ -61,7 +62,7 @@ export const useStreamManager = (roomName: string) => {
         }));
         setSources(mappedSources);
 
-        // Auto-activate enabled sources (except screen share)
+        // Auto‑activate enabled sources (except screen share)
         mappedSources.forEach(s => {
           if (s.isEnabled && s.type !== 'video') {
             activateSource(s.id);
@@ -214,17 +215,17 @@ export const useStreamManager = (roomName: string) => {
 
       // --------- NEW LOGIC FOR SCREEN SHARE ----------
       if (source.type === "video") {
-        // Screen share – use getDisplayMedia
+        // Screen share – use getDisplayMedia with FPS constraint
         stream = await navigator.mediaDevices.getDisplayMedia({
-          video: true,
+          video: { frameRate: fps },
           audio: true,
         });
       } else if (source.type === "camera") {
-        // Camera – optionally use a specific device
+        // Camera – optionally use a specific device and FPS constraint
         const constraints: MediaStreamConstraints = {
           video: source.deviceId
-            ? { deviceId: { exact: source.deviceId } }
-            : { width: 1280, height: 720 },
+            ? { deviceId: { exact: source.deviceId }, frameRate: fps }
+            : { width: 1280, height: 720, frameRate: fps },
           audio: true,
         };
         stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -244,7 +245,7 @@ export const useStreamManager = (roomName: string) => {
       toast.error('Unable to access selected device');
       return false;
     }
-  }, []);
+  }, [fps]);
 
   const deactivateSource = useCallback((id: string) => {
     setSources(prev => prev.map(s => {
@@ -324,6 +325,8 @@ export const useStreamManager = (roomName: string) => {
     updateSourceLabel,
     updateSourceDeviceId,
     reconnectAll,
-    saveToDatabase
+    saveToDatabase,
+    fps,
+    setFps
   };
 };

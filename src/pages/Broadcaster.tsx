@@ -4,6 +4,7 @@ import { useStreamManager } from '@/hooks/useStreamManager';
 import SourceCard from '@/components/SourceCard';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Monitor, Mic, Camera, LayoutGrid, Info, ArrowLeft, Play, Square, RefreshCw, Edit2, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -39,6 +40,8 @@ const Broadcaster = () => {
     reconnectAll,
     saveToDatabase,
     updateSourceDeviceId,
+    fps,
+    setFps,
   } = useStreamManager(roomName);
 
   const commitRoomIdChange = async () => {
@@ -210,6 +213,21 @@ const Broadcaster = () => {
                 <div className={`w-2 h-2 rounded-full ${isBroadcasting ? 'bg-emerald-500 animate-pulse' : 'bg-slate-700'}`} />
                 <span className="text-xs font-bold text-slate-400">{connections} Receivers</span>
               </div>
+            </div>
+
+            {/* FPS selector */}
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-slate-400">FPS</Label>
+              <Select value={fps.toString()} onValueChange={(val) => setFps(parseInt(val, 10))}>
+                <SelectTrigger className="h-8 w-20">
+                  <SelectValue placeholder="FPS" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="15">15</SelectItem>
+                  <SelectItem value="30">30</SelectItem>
+                  <SelectItem value="60">60</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <Button
