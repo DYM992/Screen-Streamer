@@ -125,7 +125,7 @@ export const useStreamManager = (peerId?: string) => {
         label: "Screen Capture",
         type: 'video',
         stream,
-        scaleFactor: 1.5
+        scaleFactor: 1.0
       };
 
       setSources(prev => [...prev, newSource]);
