@@ -4,7 +4,7 @@ import { useStreamManager } from '@/hooks/useStreamManager';
 import SourceCard from '@/components/SourceCard';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Monitor, Mic, Camera, LayoutGrid, Info, ArrowLeft, Play, Square, RefreshCw, Edit2, Check } from "lucide-react";
+import { Monitor, Mic, Camera, LayoutGrid, Info, ArrowLeft, Play, Square, RefreshCw, Edit2, Check, Volume2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const Broadcaster = () => {
@@ -259,6 +259,9 @@ const Broadcaster = () => {
                 </Button>
                 <Button onClick={() => addSource('audio')} className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-bold rounded-xl h-11">
                   <Mic className="w-4 h-4 mr-2" /> Add Mic
+                </Button>
+                <Button onClick={() => addSource('appAudio')} className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-bold rounded-xl h-11">
+                  <Volume2 className="w-4 h-4 mr-2" /> Add App Audio
                 </Button>
               </div>
             </div>

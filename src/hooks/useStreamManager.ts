@@ -7,7 +7,7 @@ export interface StreamSource {
   id: string;
   dbId?: string;
   label: string;
-  type: 'video' | 'audio' | 'camera';
+  type: 'video' | 'audio' | 'camera' | 'appAudio';
   stream?: MediaStream;
   deviceId?: string;
   isActive: boolean;
@@ -61,9 +61,9 @@ export const useStreamManager = (roomName: string) => {
         }));
         setSources(mappedSources);
 
-        // Auto-activate enabled sources (except screen share)
+        // Auto-activate enabled sources (except screen share & app audio)
         mappedSources.forEach(s => {
-          if (s.isEnabled && s.type !== 'video') {
+          if (s.isEnabled && s.type !== 'video' && s.type !== 'appAudio') {
             activateSource(s.id);
           }
         });
@@ -219,6 +219,12 @@ export const useStreamManager = (roomName: string) => {
           video: true,
           audio: true,
         });
+      } else if (source.type === "appAudio") {
+        // Application (system) audio – use getDisplayMedia audio only
+        stream = await navigator.mediaDevices.getDisplayMedia({
+          video: false,
+          audio: true,
+        });
       } else if (source.type === "camera") {
         // Camera – optionally use a specific device
         const constraints: MediaStreamConstraints = {
@@ -229,7 +235,7 @@ export const useStreamManager = (roomName: string) => {
         };
         stream = await navigator.mediaDevices.getUserMedia(constraints);
       } else {
-        // Audio only
+        // Audio only (microphone)
         const constraints: MediaStreamConstraints = {
           audio: source.deviceId ? { deviceId: { exact: source.deviceId } } : true,
           video: false,
@@ -256,8 +262,14 @@ export const useStreamManager = (roomName: string) => {
     }));
   }, []);
 
-  const addSource = useCallback(async (type: 'video' | 'audio' | 'camera') => {
-    const label = type.charAt(0).toUpperCase() + type.slice(1);
+  const addSource = useCallback(async (type: 'video' | 'audio' | 'camera' | 'appAudio') => {
+    const labelMap: Record<typeof type, string> = {
+      video: "Screen",
+      audio: "Microphone",
+      camera: "Camera",
+      appAudio: "App Audio"
+    };
+    const label = labelMap[type] || "Source";
     const { data } = await supabase
       .from('sources')
       .insert({ room_id: roomName, label, type, is_enabled: true })

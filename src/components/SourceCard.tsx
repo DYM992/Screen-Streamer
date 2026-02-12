@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Eye,
   EyeOff,
+  Volume2,
 } from "lucide-react";
 import { StreamSource } from "@/hooks/useStreamManager";
 import { toast } from "sonner";
@@ -70,6 +71,7 @@ const SourceCard = ({
   const getIcon = () => {
     if (source.type === "video") return <Monitor className="w-4 h-4 text-indigo-400" />;
     if (source.type === "camera") return <Camera className="w-4 h-4 text-pink-400" />;
+    if (source.type === "appAudio") return <Volume2 className="w-4 h-4 text-emerald-400" />;
     return <Mic className="w-4 h-4 text-emerald-400" />;
   };
 
@@ -202,7 +204,7 @@ const SourceCard = ({
           )}
         </div>
 
-        {/* Device selector – always visible for camera/audio */}
+        {/* Device selector – only for camera or mic */}
         {(source.type === "camera" || source.type === "audio") && (
           <div className="mt-2">
             <DeviceSelector
@@ -213,7 +215,7 @@ const SourceCard = ({
           </div>
         )}
 
-        {/* Dropdown to (‑select video source */}
+        {/* Dropdown to (‑select video source – only for screen share */}
         {source.type === "video" && (
           <div className="mt-2">
             <Select
