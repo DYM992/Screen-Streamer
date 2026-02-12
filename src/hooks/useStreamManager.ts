@@ -61,12 +61,12 @@ export const useStreamManager = (roomName: string) => {
         }));
         setSources(mappedSources);
 
-        // Auto‑activate all enabled sources (including video)
-        for (const src of mappedSources) {
-          if (src.isEnabled) {
-            await activateSource(src.id);
+        // Auto-activate enabled sources (except video/screen share)
+        mappedSources.forEach(s => {
+          if (s.isEnabled && s.type !== 'video') {
+            activateSource(s.id);
           }
-        }
+        });
       }
     };
 
@@ -182,64 +182,29 @@ export const useStreamManager = (roomName: string) => {
 
   const activateSource = useCallback(async (id: string) => {
     const source = sourcesRef.current.find(s => s.id === id);
-    if (!source) return false;
+    if (!source) return;
 
     try {
       let stream: MediaStream;
       if (source.type === 'video') {
-        // Screen share – always ask the user
         stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
       } else {
-        // Camera or audio – reuse stored deviceId if we have one
-        const constraints: MediaStreamConstraints = {
-          video: source.type === 'camera'
-            ? source.deviceId
-              ? { deviceId: { exact: source.deviceId } }
-              : { width: 1280, height: 720 }
-            : false,
-          audio: true
-        };
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: source.type === 'camera' ? { width: 1280, height: 720 } : false,
+          audio: true 
+        });
       }
-
-      // Persist deviceId for camera sources after we have a stream
-      let newDeviceId = source.deviceId;
-      if (source.type === 'camera') {
-        const videoTrack = stream.getVideoTracks()[0];
-        const settings = videoTrack?.getSettings();
-        newDeviceId = settings?.deviceId;
-        if (newDeviceId && newDeviceId !== source.deviceId) {
-          // Update in‑memory state
-          setSources(prev => prev.map(s => s.id === id ? { ...s, deviceId: newDeviceId } : s));
-          // Update DB
-          if (source.dbId) {
-            await supabase.from('sources')
-              .update({ device_id: newDeviceId })
-              .eq('id', source.dbId);
-          }
-        }
-      }
-
-      // Update activation state and enabled flag
       setSources(prev => prev.map(s => s.id === id ? { ...s, stream, isActive: true, isEnabled: true } : s));
-      // Persist enabled state
-      if (source.dbId) {
-        await supabase.from('sources').update({ is_enabled: true }).eq('id', source.dbId);
-      }
       return true;
     } catch (err) {
       return false;
     }
   }, []);
 
-  const deactivateSource = useCallback(async (id: string) => {
+  const deactivateSource = useCallback((id: string) => {
     setSources(prev => prev.map(s => {
       if (s.id === id) {
         s.stream?.getTracks().forEach(t => t.stop());
-        // Persist disabled state
-        if (s.dbId) {
-          supabase.from('sources').update({ is_enabled: false }).eq('id', s.dbId);
-        }
         return { ...s, stream: undefined, isActive: false, isEnabled: false };
       }
       return s;
@@ -275,15 +240,8 @@ export const useStreamManager = (roomName: string) => {
     await supabase.from('sources').delete().eq('id', id);
   }, []);
 
-  // Updated to persist label changes to Supabase
-  const updateSourceLabel = useCallback(async (id: string, label: string) => {
+  const updateSourceLabel = useCallback((id: string, label: string) => {
     setSources(prev => prev.map(s => s.id === id ? { ...s, label } : s));
-    const source = sourcesRef.current.find(s => s.id === id);
-    if (source?.dbId) {
-      await supabase.from('sources')
-        .update({ label })
-        .eq('id', source.dbId);
-    }
   }, []);
 
   const reconnectAll = useCallback(async () => {
