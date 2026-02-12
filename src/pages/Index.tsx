@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Radio, Tv, ShieldCheck, History, ArrowRight, Plus, Trash2, Monitor } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/utils/supabase/server";
+import { createClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers"
 
 interface RoomData {
   id: string;
