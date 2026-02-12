@@ -201,9 +201,9 @@ const SourceCard = ({
           )}
         </div>
 
-        {/* Dropdown – collapse on mouse‑out but stay open while focused */}
+        {/* Device selector – always visible with spacing */}
         {(source.type === "camera" || source.type === "audio") && (
-          <div className="mt-2 overflow-hidden transition-[max-height] duration-500 ease-in-out max-h-0 group-hover:max-h-40 focus-within:max-h-40">
+          <div className="mt-2">
             <DeviceSelector
               type={source.type as any}
               selectedDeviceId={source.deviceId}
