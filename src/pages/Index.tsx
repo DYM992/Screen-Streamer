@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Radio, Tv, ShieldCheck, History, ArrowRight, Plus, Trash2, Monitor } from "lucide-react";
+import { Radio, Tv, ShieldCheck, History, ArrowRight, Plus, Trash2, Monitor, Play, Square } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 interface RoomData {
   id: string;
   thumbnail?: string;
+  is_live: boolean;
   created_at: string;
 }
 
@@ -19,18 +20,27 @@ const Index = () => {
 
   useEffect(() => {
     fetchRooms();
+    
+    // Subscribe to room changes for real-time live status
+    const channel = supabase
+      .channel('room-status')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => {
+        fetchRooms();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchRooms = async () => {
-    setIsLoading(true);
     const { data, error } = await supabase
       .from('rooms')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) {
-      toast.error("Failed to load rooms");
-    } else {
+    if (!error) {
       setRooms(data || []);
     }
     setIsLoading(false);
@@ -39,12 +49,19 @@ const Index = () => {
   const deleteRoom = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const { error } = await supabase.from('rooms').delete().eq('id', id);
-    
-    if (error) {
-      toast.error("Failed to delete room");
-    } else {
+    if (!error) {
       setRooms(prev => prev.filter(r => r.id !== id));
       toast.success("Room deleted");
+    }
+  };
+
+  const toggleRoomLive = async (room: RoomData, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (room.is_live) {
+      await supabase.from('rooms').update({ is_live: false }).eq('id', room.id);
+      toast.info(`Room ${room.id} stopped`);
+    } else {
+      navigate(`/broadcaster?room=${room.id}&autoStart=true`);
     }
   };
 
@@ -125,18 +142,41 @@ const Index = () => {
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
+                    
+                    {/* Live Badge */}
+                    {room.is_live && (
+                      <div className="absolute top-4 left-4 flex items-center gap-2 bg-red-500 px-3 py-1 rounded-full shadow-lg shadow-red-500/20">
+                        <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Live</span>
+                      </div>
+                    )}
+
                     <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
                       <span className="font-mono text-white font-bold text-sm bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
                         {room.id}
                       </span>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={(e) => deleteRoom(room.id, e)}
-                        className="h-8 w-8 rounded-full bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={(e) => toggleRoomLive(room, e)}
+                          className={`h-8 w-8 rounded-full transition-all ${
+                            room.is_live 
+                            ? 'bg-red-500 text-white hover:bg-red-600' 
+                            : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white'
+                          }`}
+                        >
+                          {room.is_live ? <Square className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={(e) => deleteRoom(room.id, e)}
+                          className="h-8 w-8 rounded-full bg-slate-800/50 text-slate-400 hover:bg-red-500 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                   <div className="p-5 flex items-center justify-between">

@@ -2,6 +2,7 @@
 CREATE TABLE public.rooms (
   id TEXT PRIMARY KEY,
   thumbnail TEXT,
+  is_live BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

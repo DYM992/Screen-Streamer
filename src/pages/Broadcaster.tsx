@@ -13,17 +13,6 @@ const Broadcaster = () => {
   const initialRoom = searchParams.get('room') || `room-${Math.floor(Math.random() * 1000)}`;
   const [roomName, setRoomName] = useState(initialRoom);
 
-  useEffect(() => {
-    if (!searchParams.get('room')) {
-      setSearchParams({ room: roomName }, { replace: true });
-    }
-  }, []);
-
-  const handleRoomChange = (newRoom: string) => {
-    setRoomName(newRoom);
-    setSearchParams({ room: newRoom }, { replace: true });
-  };
-
   const { 
     sources, 
     connections, 
@@ -34,8 +23,32 @@ const Broadcaster = () => {
     deactivateSource,
     updateSourceLabel, 
     removeSource,
-    reconnectAll
+    reconnectAll,
+    saveToDatabase
   } = useStreamManager(roomName);
+
+  useEffect(() => {
+    if (!searchParams.get('room')) {
+      setSearchParams({ room: roomName }, { replace: true });
+    }
+    
+    // Handle auto-start from dashboard
+    if (searchParams.get('autoStart') === 'true' && !isBroadcasting) {
+      const timer = setTimeout(() => {
+        toggleBroadcasting();
+        // Remove autoStart from URL
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('autoStart');
+        setSearchParams(newParams, { replace: true });
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [roomName, isBroadcasting]);
+
+  const handleBack = async () => {
+    await saveToDatabase();
+    navigate('/');
+  };
 
   const hasInactiveSources = sources.some(s => !s.isActive);
 
@@ -48,7 +61,7 @@ const Broadcaster = () => {
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={() => navigate('/')}
+              onClick={handleBack}
               className="text-slate-400 hover:text-white -ml-2"
             >
               <ArrowLeft className="w-4 h-4 mr-2" /> Back to Dashboard
@@ -67,7 +80,7 @@ const Broadcaster = () => {
                 <Label className="text-[10px] text-slate-500 uppercase font-black block mb-1">Room ID</Label>
                 <input 
                   value={roomName}
-                  onChange={(e) => handleRoomChange(e.target.value)}
+                  onChange={(e) => setRoomName(e.target.value)}
                   disabled={isBroadcasting}
                   className="bg-transparent border-none focus:ring-0 text-sm font-mono w-32 p-0 disabled:opacity-50"
                 />
