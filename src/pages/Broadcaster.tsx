@@ -43,16 +43,23 @@ const Broadcaster = () => {
       return;
     }
 
+    // Ensure the new room exists (insert if missing)
+    await supabase
+      .from('rooms')
+      .insert({ id: newId })
+      .onConflict('id')
+      .ignore();
+
     // Move all sources to the new room ID
     await supabase
       .from('sources')
       .update({ room_id: newId })
       .eq('room_id', oldId);
 
-    // Update the room's primary key (id) to the new ID
+    // Delete the old room entry so only the new one remains
     await supabase
       .from('rooms')
-      .update({ id: newId })
+      .delete()
       .eq('id', oldId);
 
     // Update local state so the manager loads the new room
