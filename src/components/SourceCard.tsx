@@ -13,10 +13,18 @@ import {
   RefreshCw,
   Eye,
   EyeOff,
+  Square,
 } from "lucide-react";
 import { StreamSource } from "@/hooks/useStreamManager";
 import { toast } from "sonner";
 import { DeviceSelector } from "./DeviceSelector";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface SourceCardProps {
   source: StreamSource;
@@ -26,6 +34,7 @@ interface SourceCardProps {
   onActivate: (id: string) => Promise<boolean | undefined>;
   onDeactivate: (id: string) => void;
   onDeviceChange: (id: string, deviceId: string) => void;
+  onTypeChange: (id: string, newType: 'video' | 'audio' | 'camera') => void;
 }
 
 const SourceCard = ({
@@ -36,6 +45,7 @@ const SourceCard = ({
   onActivate,
   onDeactivate,
   onDeviceChange,
+  onTypeChange,
 }: SourceCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [label, setLabel] = useState(source.label);
@@ -211,6 +221,38 @@ const SourceCard = ({
             />
           </div>
         )}
+
+        {/* ----- NEW TYPE SELECTOR DROPDOWN ----- */}
+        <div className="mt-2">
+          <Select
+            value={source.type}
+            onValueChange={(val) => onTypeChange(source.id, val as any)}
+          >
+            <SelectTrigger className="h-8 w-full text-sm">
+              <SelectValue placeholder="Select source type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="video">
+                <div className="flex items-center gap-2">
+                  <Monitor className="w-4 h-4 text-indigo-400" />
+                  <span>Screen</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="camera">
+                <div className="flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-pink-400" />
+                  <span>Camera</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="audio">
+                <div className="flex items-center gap-2">
+                  <Mic className="w-4 h-4 text-emerald-400" />
+                  <span>Microphone</span>
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </CardContent>
     </Card>
   );
