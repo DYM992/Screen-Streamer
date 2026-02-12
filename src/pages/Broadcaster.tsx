@@ -82,12 +82,15 @@ const Broadcaster = () => {
       setSearchParams({ room: roomName }, { replace: true });
     }
 
-    // Auto‑start from dashboard: trigger broadcast immediately
+    // Auto‑start from dashboard: trigger broadcast after a short delay
     if (searchParams.get('autoStart') === "true" && !isBroadcasting) {
-      toggleBroadcasting();
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("autoStart");
-      setSearchParams(newParams, { replace: true });
+      const timer = setTimeout(() => {
+        toggleBroadcasting();
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete("autoStart");
+        setSearchParams(newParams, { replace: true });
+      }, 500); // short delay to let the component settle
+      return () => clearTimeout(timer);
     }
   }, [roomName, isBroadcasting]);
 
