@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStreamManager } from '@/hooks/useStreamManager';
 import SourceCard from '@/components/SourceCard';
@@ -15,6 +15,15 @@ const Broadcaster = () => {
   const [roomName, setRoomName] = useState(initialRoom);
   const [editingRoomId, setEditingRoomId] = useState(initialRoom);
   const [isEditingRoomId, setIsEditingRoomId] = useState(false);
+
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus the input when rename mode is activated
+  useEffect(() => {
+    if (isEditingRoomId && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isEditingRoomId]);
 
   const {
     sources,
@@ -176,13 +185,13 @@ const Broadcaster = () => {
               <div className="bg-slate-950 px-4 py-2 rounded-xl border border-slate-800 flex items-center gap-2">
                 <Label className="text-[10px] text-slate-500 uppercase font-black block mb-1">Room ID</Label>
                 <input
+                  ref={inputRef}
                   value={editingRoomId}
                   onChange={handleRoomIdChange}
                   onBlur={handleRoomIdBlur}
                   onKeyDown={handleRoomIdKeyDown}
                   disabled={!isEditingRoomId || isBroadcasting}
                   className="bg-transparent border-none focus:ring-0 text-sm font-mono w-32 p-0 disabled:opacity-50"
-                  autoFocus
                 />
                 <Button
                   variant="ghost"
