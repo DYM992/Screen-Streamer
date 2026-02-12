@@ -1,12 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { RefreshCw } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface DeviceSelectorProps {
   type: "camera" | "audio";
@@ -14,17 +7,13 @@ interface DeviceSelectorProps {
   onChange: (deviceId: string) => void;
 }
 
-export const DeviceSelector = ({
-  type,
-  selectedDeviceId,
-  onChange,
-}: DeviceSelectorProps) => {
+export const DeviceSelector = ({ type, selectedDeviceId, onChange }: DeviceSelectorProps) => {
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
 
   useEffect(() => {
     const fetchDevices = async () => {
       const all = await navigator.mediaDevices.enumerateDevices();
-      const filtered = all.filter((d) => {
+      const filtered = all.filter(d => {
         if (type === "camera") return d.kind === "videoinput";
         return d.kind === "audioinput";
       });
@@ -35,23 +24,16 @@ export const DeviceSelector = ({
 
   return (
     <Select
-      onValueChange={(value) => {
-        onChange(value);
-      }}
+      onValueChange={onChange}
       value={selectedDeviceId}
     >
-      {/* Trigger is the RefreshCw icon button */}
-      <SelectTrigger className="h-8 w-8 p-2 flex items-center justify-center border rounded">
-        <RefreshCw className="w-4 h-4" />
+      <SelectTrigger className="h-8 w-32 text-sm">
+        <SelectValue placeholder={type === "camera" ? "Select Camera" : "Select Mic"} />
       </SelectTrigger>
       <SelectContent>
-        {devices.map((d) => (
+        {devices.map(d => (
           <SelectItem key={d.deviceId} value={d.deviceId}>
-            {d.label ||
-              `${type === "camera" ? "Camera" : "Mic"} ${d.deviceId.slice(
-                0,
-                6
-              )}`}
+            {d.label || `${type === "camera" ? "Camera" : "Mic"} ${d.deviceId.slice(0, 6)}`}
           </SelectItem>
         ))}
       </SelectContent>
