@@ -45,7 +45,7 @@ const Broadcaster = () => {
     }
 
     // Update the room's primary key (id) to the new ID
-    cons {error} = await supabase
+    const {error} = await supabase
       .from('rooms')
       .update({ id: oldId })
       .eq('id', newId);
