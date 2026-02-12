@@ -86,7 +86,8 @@ const Broadcaster = () => {
     }
   };
 
-  const toggleEditMode = async () => {
+  // Button click handler: start editing or commit rename
+  const handleEditButtonClick = async () => {
     if (isEditingRoomId) {
       await commitRoomIdChange();
     } else {
@@ -151,7 +152,7 @@ const Broadcaster = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={toggleEditMode}
+                  onClick={handleEditButtonClick}
                   disabled={isBroadcasting}
                   className="h-8 w-8 text-indigo-400 hover:text-white"
                   title={isEditingRoomId ? "Save Room ID" : "Rename Room"}
