@@ -76,7 +76,7 @@ const Broadcaster = () => {
                 <Button onClick={() => addCameraSource()} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl h-11">
                   <Camera className="w-4 h-4 mr-2" /> Camera
                 </Button>
-                <Button onClick={() => addMicSource()} variant="outline" className="border-slate-600 hover:bg-slate-900 text-white font-bold rounded-xl h-11">
+                <Button onClick={() => addMicSource()} variant="outline" className="border-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl h-11">
                   <Mic className="w-4 h-4 mr-2" /> Mic
                 </Button>
               </div>
