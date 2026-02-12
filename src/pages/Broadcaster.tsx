@@ -1,11 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStreamManager } from '@/hooks/useStreamManager';
 import SourceCard from '@/components/SourceCard';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Monitor, Mic, Camera, LayoutGrid, Info, ArrowLeft, Play, Square, RefreshCw, Edit2, Check } from "lucide-react";
+import { Monitor, Mic, Camera, Trash2, Edit2, Check, ExternalLink, RefreshCw, Eye, EyeOff, LayoutGrid, ArrowLeft, Play, Square, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { SourceTypeSelector, SourceOption } from "@/components/SourceTypeSelector";
 
 const Broadcaster = () => {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ const Broadcaster = () => {
   const [roomName, setRoomName] = useState(initialRoom);
   const [editingRoomId, setEditingRoomId] = useState(initialRoom);
   const [isEditingRoomId, setIsEditingRoomId] = useState(false);
+  const [selectedSource, setSelectedSource] = useState<SourceOption>("video");
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -183,49 +185,51 @@ const Broadcaster = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
-            <div className="bg-slate-900/50 border border-slate-800 p-1.5 rounded-2xl flex items-center gap-4 pr-4">
-              <div className="bg-slate-950 px-4 py-2 rounded-xl border border-slate-800 flex items-center gap-2">
-                <Label className="text-[10px] text-slate-500 uppercase font-black block mb-1">Room ID</Label>
-                <input
-                  ref={inputRef}
-                  value={editingRoomId}
-                  onChange={handleRoomIdChange}
-                  onBlur={handleRoomIdBlur}
-                  onKeyDown={handleRoomIdKeyDown}
-                  disabled={!isEditingRoomId || isBroadcasting}
-                  className="bg-transparent border-none focus:ring-0 text-sm font-mono w-32 p-0 disabled:opacity-50"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleEditButtonClick}
-                  disabled={isBroadcasting}
-                  className="h-8 w-8 text-indigo-400 hover:text-white"
-                  title={isEditingRoomId ? "Save Room ID" : "Rename Room"}
-                >
-                  {isEditingRoomId ? <Check className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
-                </Button>
+            <div className="flex items-center gap-3">
+              <div className="bg-slate-900/50 border border-slate-800 p-1.5 rounded-2xl flex items-center gap-4 pr-4">
+                <div className="bg-slate-950 px-4 py-2 rounded-xl border border-slate-800 flex items-center gap-2">
+                  <Label className="text-[10px] text-slate-500 uppercase font-black block mb-1">Room ID</Label>
+                  <input
+                    ref={inputRef}
+                    value={editingRoomId}
+                    onChange={handleRoomIdChange}
+                    onBlur={handleRoomIdBlur}
+                    onKeyDown={handleRoomIdKeyDown}
+                    disabled={!isEditingRoomId || isBroadcasting}
+                    className="bg-transparent border-none focus:ring-0 text-sm font-mono w-32 p-0 disabled:opacity-50"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleEditButtonClick}
+                    disabled={isBroadcasting}
+                    className="h-8 w-8 text-indigo-400 hover:text-white"
+                    title={isEditingRoomId ? "Save Room ID" : "Rename Room"}
+                  >
+                    {isEditingRoomId ? <Check className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${isBroadcasting ? 'bg-emerald-500 animate-pulse' : 'bg-slate-700'}`} />
+                  <span className="text-xs font-bold text-slate-400">{connections} Receivers</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${isBroadcasting ? 'bg-emerald-500 animate-pulse' : 'bg-slate-700'}`} />
-                <span className="text-xs font-bold text-slate-400">{connections} Receivers</span>
-              </div>
-            </div>
 
-            <Button
-              onClick={toggleBroadcasting}
-              className={`h-14 px-8 rounded-2xl font-black text-lg transition-all ${
-                isBroadcasting
-                  ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/20'
-                  : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
-              }`}
-            >
-              {isBroadcasting ? (
-                <><Square className="w-5 h-5 mr-2 fill-current" /> Stop Broadcast</>
-              ) : (
-                <><Play className="w-5 h-5 mr-2 fill-current" /> Start Broadcast</>
-              )}
-            </Button>
+              <Button
+                onClick={toggleBroadcasting}
+                className={`h-14 px-8 rounded-2xl font-black text-lg transition-all ${
+                  isBroadcasting
+                    ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/20'
+                    : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                }`}
+              >
+                {isBroadcasting ? (
+                  <><Square className="w-5 h-5 mr-2 fill-current" /> Stop Broadcast</>
+                ) : (
+                  <><Play className="w-5 h-5 mr-2 fill-current" /> Start Broadcast</>
+                )}
+              </Button>
+            </div>
           </div>
         </header>
 
@@ -250,15 +254,18 @@ const Broadcaster = () => {
                   </Button>
                 )}
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={() => addSource('video')} className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-bold rounded-xl h-11">
-                  <Monitor className="w-4 h-4 mr-2" /> Add Screen
-                </Button>
-                <Button onClick={() => addSource('camera')} className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-bold rounded-xl h-11">
-                  <Camera className="w-4 h-4 mr-2" /> Add Camera
-                </Button>
-                <Button onClick={() => addSource('audio')} className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-bold rounded-xl h-11">
-                  <Mic className="w-4 h-4 mr-2" /> Add Mic
+
+              {/* New dropdown + Add button */}
+              <div className="flex items-center gap-2">
+                <SourceTypeSelector
+                  value={selectedSource}
+                  onChange={setSelectedSource}
+                />
+                <Button
+                  onClick={() => addSource(selectedSource)}
+                  className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-bold rounded-xl h-11"
+                >
+                  <Plus className="w-4 h-4 mr-2" /> Add Source
                 </Button>
               </div>
             </div>
