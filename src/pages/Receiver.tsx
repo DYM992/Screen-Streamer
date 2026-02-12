@@ -5,7 +5,7 @@ import Peer from 'peerjs';
 interface RemoteSource {
   id: string;
   label: string;
-  type: 'video' | 'audio';
+  type: 'video' | 'audio' | string; // allow custom types like "video/webm"
   stream: MediaStream;
 }
 
@@ -31,15 +31,6 @@ const Receiver = () => {
       peer.on('call', (incomingCall) => {
         incomingCall.answer();
         incomingCall.on('stream', (remoteStream) => {
-          // @ts-ignore
-          const pc = incomingCall.peerConnection as RTCPeerConnection;
-          if (pc) {
-            pc.getReceivers().forEach(receiver => {
-              // @ts-ignore
-              if ('playoutDelayHint' in receiver) receiver.playoutDelayHint = 0.0;
-            });
-          }
-
           const metadata = (incomingCall as any).metadata || {};
           const sourceId = metadata.id || `remote-${Date.now()}`;
           const newSource: RemoteSource = {
@@ -48,16 +39,13 @@ const Receiver = () => {
             type: metadata.type || 'video',
             stream: remoteStream,
           };
-
           setSources(prev => {
-            const existingIndex = prev.findIndex(s => s.id === sourceId);
-            if (existingIndex !== -1) {
-              // Replace the stream for the existing source (auto‑refresh)
+            const existing = prev.findIndex(s => s.id === sourceId);
+            if (existing !== -1) {
               const updated = [...prev];
-              updated[existingIndex] = { ...updated[existingIndex], stream: remoteStream };
+              updated[existing] = { ...updated[existing], stream: remoteStream };
               return updated;
             }
-            // Add new source if not present
             return [...prev, newSource];
           });
         });
@@ -80,23 +68,16 @@ const Receiver = () => {
     <div className="fixed inset-0 bg-black flex items-center justify-center">
       {displayedSources.map(source => (
         <div key={source.id} className={`relative ${source.type === 'audio' ? 'hidden' : ''} w-full h-full`}>
-          {source.type === 'video' ? (
+          {source.type === 'audio' ? (
+            <audio autoPlay ref={el => { if (el && el.srcObject !== source.stream) el.srcObject = source.stream; }} />
+          ) : (
             <video
               autoPlay
               playsInline
               muted
               controls={false}
-              ref={el => {
-                if (el && el.srcObject !== source.stream) el.srcObject = source.stream;
-              }}
+              ref={el => { if (el && el.srcObject !== source.stream) el.srcObject = source.stream; }}
               className="w-screen h-screen object-fill bg-black"
-            />
-          ) : (
-            <audio
-              autoPlay
-              ref={el => {
-                if (el && el.srcObject !== source.stream) el.srcObject = source.stream;
-              }}
             />
           )}
         </div>
