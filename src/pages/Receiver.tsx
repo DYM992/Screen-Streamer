@@ -12,7 +12,7 @@ interface RemoteSource {
 const Receiver = () => {
   const [searchParams] = useSearchParams();
   const room = searchParams.get('room');
-  const targetSourceId = searchParams.get('sourceId'); // Optional: filter for specific source
+  const targetSourceId = searchParams.get('sourceId');
   const [sources, setSources] = useState<RemoteSource[]>([]);
   const [status, setStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
   const peerRef = useRef<Peer | null>(null);
@@ -29,7 +29,7 @@ const Receiver = () => {
     peer.on('open', () => {
       setStatus('connected');
       // Connect to the broadcaster
-      const call = peer.call(room, new MediaStream()); // Empty stream to initiate
+      peer.call(room, new MediaStream()); 
       
       peer.on('call', (incomingCall) => {
         incomingCall.answer();
@@ -43,7 +43,6 @@ const Receiver = () => {
           };
 
           setSources(prev => {
-            // Avoid duplicates
             if (prev.find(s => s.id === newSource.id)) return prev;
             return [...prev, newSource];
           });
@@ -51,12 +50,9 @@ const Receiver = () => {
       });
     });
 
-    return () => {
-      peer.destroy();
-    };
+    return () => peer.destroy();
   }, [room]);
 
-  // Filter sources if a specific one is requested (for OBS individual layers)
   const displayedSources = targetSourceId 
     ? sources.filter(s => s.id === targetSourceId)
     : sources;
@@ -79,13 +75,28 @@ const Receiver = () => {
               <video 
                 autoPlay 
                 playsInline 
-                ref={el => { if (el) el.srcObject = source.stream; }}
+                muted={false}
+                controls={false}
+                disablePictureInPicture
+                ref={el => { 
+                  if (el && el.srcObject !== source.stream) {
+                    el.srcObject = source.stream;
+                    // Force low latency by ensuring we don't buffer
+                    el.play().catch(console.error);
+                  }
+                }}
                 className="w-full h-full object-contain"
+                style={{ imageRendering: 'pixelated' }} // Helps with clarity on some streams
               />
             ) : (
               <audio 
                 autoPlay 
-                ref={el => { if (el) el.srcObject = source.stream; }}
+                ref={el => { 
+                  if (el && el.srcObject !== source.stream) {
+                    el.srcObject = source.stream;
+                    el.play().catch(console.error);
+                  }
+                }}
               />
             )}
           </div>

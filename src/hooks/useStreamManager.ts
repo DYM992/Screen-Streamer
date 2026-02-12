@@ -25,12 +25,11 @@ export const useStreamManager = (peerId?: string) => {
     const newPeer = new Peer(peerId, {
       debug: 1,
       config: {
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
       }
-    });
-
-    newPeer.on('open', (id) => {
-      console.log('Broadcaster active on room:', id);
     });
 
     newPeer.on('connection', (conn) => {
@@ -53,24 +52,33 @@ export const useStreamManager = (peerId?: string) => {
       });
     });
 
-    newPeer.on('error', (err) => {
-      if (err.type === 'unavailable-id') {
-        toast.error("Room ID already taken. Try a different name.");
-      }
-    });
-
     setPeer(newPeer);
-    return () => {
-      newPeer.destroy();
-    };
+    return () => newPeer.destroy();
   }, [peerId]);
+
+  const optimizeTrack = (track: MediaStreamTrack) => {
+    if (track.kind === 'video') {
+      // @ts-ignore - contentHint is supported in modern browsers
+      if ('contentHint' in track) track.contentHint = 'motion';
+    }
+  };
 
   const addScreenSource = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: { frameRate: 60 },
-        audio: true
+        video: { 
+          frameRate: { ideal: 60, max: 60 },
+          // @ts-ignore - cursor is a valid constraint for getDisplayMedia
+          cursor: 'always'
+        },
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        }
       });
+      
+      stream.getTracks().forEach(optimizeTrack);
       
       const id = `v-${Math.random().toString(36).substr(2, 5)}`;
       const newSource: StreamSource = {
@@ -94,19 +102,22 @@ export const useStreamManager = (peerId?: string) => {
         setSources(prev => [...prev, audioSource]);
       }
     } catch (err: any) {
-      if (err.name !== 'NotAllowedError') {
-        toast.error(`Screen capture failed: ${err.message}`);
-      }
+      if (err.name !== 'NotAllowedError') toast.error("Capture failed");
     }
   }, []);
 
   const addMicSource = useCallback(async (deviceId?: string) => {
     try {
-      // Safety check: ensure deviceId is a string and not a React event object
       const actualDeviceId = typeof deviceId === 'string' ? deviceId : undefined;
-      
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: actualDeviceId ? { deviceId: { exact: actualDeviceId } } : true 
+        audio: {
+          deviceId: actualDeviceId ? { exact: actualDeviceId } : undefined,
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          // @ts-ignore - latencyHint is supported for audio
+          latencyHint: 0
+        } 
       });
       
       const id = `a-mic-${Math.random().toString(36).substr(2, 5)}`;
@@ -119,7 +130,7 @@ export const useStreamManager = (peerId?: string) => {
       setSources(prev => [...prev, newSource]);
       toast.success("Microphone added");
     } catch (err: any) {
-      toast.error(`Mic access failed: ${err.message}`);
+      toast.error("Mic access failed");
     }
   }, []);
 
@@ -129,12 +140,22 @@ export const useStreamManager = (peerId?: string) => {
       let newStream: MediaStream;
       
       if (type === 'video') {
-        newStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 60 }, audio: true });
+        newStream = await navigator.mediaDevices.getDisplayMedia({ 
+          video: { frameRate: { ideal: 60, max: 60 } }, 
+          audio: true 
+        });
       } else {
         newStream = await navigator.mediaDevices.getUserMedia({ 
-          audio: actualDeviceId ? { deviceId: { exact: actualDeviceId } } : true 
+          audio: {
+            deviceId: actualDeviceId ? { exact: actualDeviceId } : undefined,
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false
+          }
         });
       }
+
+      newStream.getTracks().forEach(optimizeTrack);
 
       setSources(prev => prev.map(s => {
         if (s.id === id) {
