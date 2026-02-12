@@ -90,7 +90,6 @@ const Broadcaster = () => {
   const handleEditButtonClick = async () => {
     if (isEditingRoomId) {
       await commitRoomIdChange();
-      setIsEditingRoomId(false);
     } else {
       setIsEditingRoomId(true);
     }
