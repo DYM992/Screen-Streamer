@@ -43,39 +43,30 @@ const Broadcaster = () => {
       return;
     }
 
-    // 1️⃣ Update all sources to point to the new room ID
-    await supabase
+    // 1️⃣ Update the room's primary key (id) to the new ID
+    const { error: roomError } = await supabase
+      .from('rooms')
+      .update({ id: newId })
+      .eq('id', oldId);
+
+    if (roomError) {
+      console.error('Failed to rename room:', roomError);
+      return;
+    }
+
+    // 2️⃣ Update all sources to point to the new room ID
+    const { error: sourceError } = await supabase
       .from('sources')
       .update({ room_id: newId })
       .eq('room_id', oldId);
 
-    // 2️⃣ Fetch the old room data (to copy live status & thumbnail)
-    const { data: oldRoom } = await supabase
-      .from('rooms')
-      .select('*')
-      .eq('id', oldId)
-      .single();
-
-    // 3️⃣ Insert a new room with the new ID, preserving existing fields
-    if (oldRoom) {
-      const { error: insertError } = await supabase
-        .from('rooms')
-        .insert({
-          id: newId,
-          thumbnail: oldRoom.thumbnail,
-          is_live: oldRoom.is_live,
-          created_at: oldRoom.created_at,
-        });
-      if (insertError) {
-        console.error('Rename failed while inserting new room:', insertError);
-        return;
-      }
+    if (sourceError) {
+      console.error('Failed to update sources after room rename:', sourceError);
+      // Rollback room rename if needed (optional)
+      return;
     }
 
-    // 4️⃣ Delete the old room entry
-    await supabase.from('rooms').delete().eq('id', oldId);
-
-    // 5️⃣ Update local state so the manager loads the new room
+    // 3️⃣ Update local state so the manager loads the new room
     setRoomName(newId);
   };
 
