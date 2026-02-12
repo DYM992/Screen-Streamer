@@ -189,8 +189,10 @@ export const useStreamManager = (roomName: string) => {
         call.answer();
         sourcesRef.current.forEach(source => {
           if (source.stream && source.isActive) {
+            // For camera sources, advertise as video/webm to indicate WebM codec
+            const metaType = source.type === "camera" ? "video/webm" : source.type;
             newPeer.call(call.peer, source.stream, {
-              metadata: { id: source.id, label: source.label, type: source.type === 'camera' ? 'video' : source.type }
+              metadata: { id: source.id, label: source.label, type: metaType }
             });
           }
         });
