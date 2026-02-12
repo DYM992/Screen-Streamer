@@ -36,7 +36,7 @@ const Receiver = () => {
           if (pc) {
             pc.getReceivers().forEach(receiver => {
               // @ts-ignore
-              if ('playoutDelayHint' in receiver) receiver.playoutDelayHint = 0.1; 
+              if ('playoutDelayHint' in receiver) receiver.playoutDelayHint = 0.0; 
             });
           }
 
