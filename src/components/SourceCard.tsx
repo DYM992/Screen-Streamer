@@ -14,12 +14,10 @@ import {
   RefreshCw,
   Eye,
   EyeOff,
-  Download,
 } from "lucide-react";
 import { StreamSource } from "@/hooks/useStreamManager";
 import { toast } from "sonner";
 import { DeviceSelector } from "./DeviceSelector";
-import { WebMRecorder } from "./WebMRecorder";
 
 interface SourceCardProps {
   source: StreamSource;
@@ -213,7 +211,7 @@ const SourceCard = ({
         )}
 
         {source.type === "video" && (
-          <div className="mt-2 flex flex-col gap-2">
+          <div className="mt-2">
             <Select
               onValueChange={async () => {
                 await onActivate(source.id);
@@ -226,10 +224,6 @@ const SourceCard = ({
                 <SelectItem value="screen">Screen / Window / Tab</SelectItem>
               </SelectContent>
             </Select>
-            {/* WebM download for video streams */}
-            {source.stream && source.type !== "audio" && (
-              <WebMRecorder stream={source.stream} filename={source.label} />
-            )}
           </div>
         )}
       </CardContent>

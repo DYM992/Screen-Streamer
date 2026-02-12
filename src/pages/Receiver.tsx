@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Peer from 'peerjs';
-import "./Receiver.css";
 
 interface RemoteSource {
   id: string;
@@ -32,7 +31,6 @@ const Receiver = () => {
       peer.on('call', (incomingCall) => {
         incomingCall.answer();
         incomingCall.on('stream', (remoteStream) => {
-          // Reduce latency hint if possible
           // @ts-ignore
           const pc = incomingCall.peerConnection as RTCPeerConnection;
           if (pc) {
@@ -54,15 +52,16 @@ const Receiver = () => {
           setSources(prev => {
             const existingIndex = prev.findIndex(s => s.id === sourceId);
             if (existingIndex !== -1) {
+              // Replace the stream for the existing source (auto‑refresh)
               const updated = [...prev];
               updated[existingIndex] = { ...updated[existingIndex], stream: remoteStream };
               return updated;
             }
+            // Add new source if not present
             return [...prev, newSource];
           });
         });
       });
-      // Initiate a dummy call to keep the PeerJS connection alive
       peer.call(room, new MediaStream());
     });
 
@@ -78,7 +77,7 @@ const Receiver = () => {
   if (status === 'connecting') return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-transparent">
+    <div className="fixed inset-0 bg-black flex items-center justify-center">
       {displayedSources.map(source => (
         <div key={source.id} className={`relative ${source.type === 'audio' ? 'hidden' : ''} w-full h-full`}>
           {source.type === 'video' ? (
@@ -90,7 +89,7 @@ const Receiver = () => {
               ref={el => {
                 if (el && el.srcObject !== source.stream) el.srcObject = source.stream;
               }}
-              className="w-screen h-screen object-fill bg-transparent"
+              className="w-screen h-screen object-fill bg-black"
             />
           ) : (
             <audio
