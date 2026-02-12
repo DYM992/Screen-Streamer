@@ -70,7 +70,7 @@ const Index = () => {
       <div className="max-w-6xl w-full space-y-12 py-12">
         <div className="text-center space-y-4">
           <h1 className="text-7xl font-black tracking-tighter text-white">
-            Stream<span className="text-indigo-500">Sync</span>
+            Screen <span className="text-indigo-500">Streamer</span>
           </h1>
           <p className="text-xl text-slate-400 max-w-2xl mx-auto font-medium">
             Professional-grade LAN streaming. Zero latency, multiple sources, 
