@@ -124,7 +124,7 @@ const Broadcaster = () => {
                 <Label className="text-[10px] text-slate-500 uppercase font-black block mb-1">Room ID</Label>
                 <input
                   value={editingRoomId}
-                  onChange={handleRoomIdChange}
+                  // onChange={handleRoomIdChange}
                   onBlur={handleRoomIdBlur}
                   onKeyDown={handleRoomIdKeyDown}
                   disabled={isChangingName}
