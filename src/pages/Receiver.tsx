@@ -36,7 +36,7 @@ const Receiver = () => {
           if (pc) {
             pc.getReceivers().forEach(receiver => {
               // @ts-ignore
-              if ('playoutDelayHint' in receiver) receiver.playoutDelayHint = 0.0; 
+              if ('playoutDelayHint' in receiver) receiver.playoutDelayHint = 0.0;
             });
           }
 
@@ -45,7 +45,7 @@ const Receiver = () => {
             id: metadata.id || `remote-${Date.now()}`,
             label: metadata.label || 'Remote Stream',
             type: metadata.type || 'video',
-            stream: remoteStream
+            stream: remoteStream,
           };
 
           setSources(prev => {
@@ -54,14 +54,14 @@ const Receiver = () => {
           });
         });
       });
-      peer.call(room, new MediaStream()); 
+      peer.call(room, new MediaStream());
     });
 
     peer.on('error', () => setStatus('error'));
     return () => peer.destroy();
   }, [room]);
 
-  const displayedSources = targetSourceId 
+  const displayedSources = targetSourceId
     ? sources.filter(s => s.id === targetSourceId)
     : sources;
 
@@ -69,28 +69,30 @@ const Receiver = () => {
   if (status === 'connecting') return null;
 
   return (
-    <div className="fixed inset-0 bg-black flex items-center justify-center p-4">
-      <div className="w-full h-full flex items-center justify-center">
-        {displayedSources.map(source => (
-          <div key={source.id} className={`relative ${source.type === 'audio' ? 'hidden' : ''} w-full h-full`}>
-            {source.type === 'video' ? (
-              <video
-                autoPlay
-                playsInline
-                muted
-                controls={false}
-                ref={el => { if (el && el.srcObject !== source.stream) el.srcObject = source.stream; }}
-                className="w-full h-full object-contain bg-black"
-              />
-            ) : (
-              <audio
-                autoPlay
-                ref={el => { if (el && el.srcObject !== source.stream) el.srcObject = source.stream; }}
-              />
-            )}
-          </div>
-        ))}
-      </div>
+    <div className="fixed inset-0 bg-black flex items-center justify-center">
+      {displayedSources.map(source => (
+        <div key={source.id} className={`relative ${source.type === 'audio' ? 'hidden' : ''} w-full h-full`}>
+          {source.type === 'video' ? (
+            <video
+              autoPlay
+              playsInline
+              muted
+              controls={false}
+              ref={el => {
+                if (el && el.srcObject !== source.stream) el.srcObject = source.stream;
+              }}
+              className="w-screen h-screen object-fill bg-black"
+            />
+          ) : (
+            <audio
+              autoPlay
+              ref={el => {
+                if (el && el.srcObject !== source.stream) el.srcObject = source.stream;
+              }}
+            />
+          )}
+        </div>
+      ))}
     </div>
   );
 };
