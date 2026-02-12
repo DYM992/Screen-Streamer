@@ -61,7 +61,7 @@ export const useStreamManager = (roomName: string) => {
         }));
         setSources(mappedSources);
 
-        // Auto-activate enabled sources (except video/screen share)
+        // Auto-activate enabled sources (except screen share)
         mappedSources.forEach(s => {
           if (s.isEnabled && s.type !== 'video') {
             activateSource(s.id);
@@ -210,22 +210,33 @@ export const useStreamManager = (roomName: string) => {
     }
 
     try {
-      let constraints: MediaStreamConstraints = { audio: true };
-      if (source.type === 'video') {
-        constraints = { video: true, audio: true };
-      } else if (source.type === 'camera') {
-        constraints = {
-          video: source.deviceId ? { deviceId: { exact: source.deviceId } } : { width: 1280, height: 720 },
-          audio: true
+      let stream: MediaStream;
+
+      // --------- NEW LOGIC FOR SCREEN SHARE ----------
+      if (source.type === "video") {
+        // Screen share – use getDisplayMedia
+        stream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: true,
+        });
+      } else if (source.type === "camera") {
+        // Camera – optionally use a specific device
+        const constraints: MediaStreamConstraints = {
+          video: source.deviceId
+            ? { deviceId: { exact: source.deviceId } }
+            : { width: 1280, height: 720 },
+          audio: true,
         };
-      } else if (source.type === 'audio') {
-        constraints = {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } else {
+        // Audio only
+        const constraints: MediaStreamConstraints = {
           audio: source.deviceId ? { deviceId: { exact: source.deviceId } } : true,
-          video: false
+          video: false,
         };
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       setSources(prev => prev.map(s => s.id === id ? { ...s, stream, isActive: true, isEnabled: true } : s));
       return true;
     } catch (err) {
