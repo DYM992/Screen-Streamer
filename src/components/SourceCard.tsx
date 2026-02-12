@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import {
   Monitor,
   Mic,
@@ -201,7 +202,7 @@ const SourceCard = ({
           )}
         </div>
 
-        {/* Device selector – always visible with spacing */}
+        {/* Device selector – always visible for camera/audio */}
         {(source.type === "camera" || source.type === "audio") && (
           <div className="mt-2">
             <DeviceSelector
@@ -209,6 +210,25 @@ const SourceCard = ({
               selectedDeviceId={source.deviceId}
               onChange={(deviceId) => onDeviceChange(source.id, deviceId)}
             />
+          </div>
+        )}
+
+        {/* Dropdown to (‑select video source */}
+        {source.type === "video" && (
+          <div className="mt-2">
+            <Select
+              onValueChange={async () => {
+                // Re‑activate the same source to let the user pick a new screen/window
+                await onActivate(source.id);
+              }}
+            >
+              <SelectTrigger className="h-9 w-full">
+                <SelectValue placeholder="Select video source" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="screen">Screen / Window / Tab</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         )}
       </CardContent>
