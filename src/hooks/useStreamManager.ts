@@ -7,7 +7,7 @@ export interface StreamSource {
   id: string;
   dbId?: string;
   label: string;
-  type: 'video' | 'audio' | 'camera' | 'appAudio';
+  type: 'video' | 'audio' | 'camera';
   stream?: MediaStream;
   deviceId?: string;
   isActive: boolean;
@@ -61,9 +61,9 @@ export const useStreamManager = (roomName: string) => {
         }));
         setSources(mappedSources);
 
-        // Auto-activate enabled sources (except screen share & app audio)
+        // Auto-activate enabled sources (except screen share)
         mappedSources.forEach(s => {
-          if (s.isEnabled && s.type !== 'video' && s.type !== 'appAudio') {
+          if (s.isEnabled && s.type !== 'video') {
             activateSource(s.id);
           }
         });
@@ -212,34 +212,15 @@ export const useStreamManager = (roomName: string) => {
     try {
       let stream: MediaStream;
 
-      // --------- SCREEN SHARE ----------
+      // --------- NEW LOGIC FOR SCREEN SHARE ----------
       if (source.type === "video") {
-        // Screen share – use getDisplayMedia (video + audio if supported)
+        // Screen share – use getDisplayMedia
         stream = await navigator.mediaDevices.getDisplayMedia({
           video: true,
           audio: true,
         });
-      }
-      // --------- APPLICATION AUDIO ----------
-      else if (source.type === "appAudio") {
-        // Try system audio via getDisplayMedia (audio only). If not supported, fall back to microphone.
-        try {
-          stream = await navigator.mediaDevices.getDisplayMedia({
-            video: false,
-            audio: true,
-          });
-        } catch (err) {
-          // NotSupportedError or other – fallback to microphone
-          console.warn('App audio capture not supported, falling back to microphone:', err);
-          toast.info('App audio not supported; using microphone instead.');
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: false,
-            audio: true,
-          });
-        }
-      }
-      // --------- CAMERA ----------
-      else if (source.type === "camera") {
+      } else if (source.type === "camera") {
+        // Camera – optionally use a specific device
         const constraints: MediaStreamConstraints = {
           video: source.deviceId
             ? { deviceId: { exact: source.deviceId } }
@@ -247,9 +228,8 @@ export const useStreamManager = (roomName: string) => {
           audio: true,
         };
         stream = await navigator.mediaDevices.getUserMedia(constraints);
-      }
-      // --------- MICROPHONE ----------
-      else {
+      } else {
+        // Audio only
         const constraints: MediaStreamConstraints = {
           audio: source.deviceId ? { deviceId: { exact: source.deviceId } } : true,
           video: false,
@@ -276,14 +256,8 @@ export const useStreamManager = (roomName: string) => {
     }));
   }, []);
 
-  const addSource = useCallback(async (type: 'video' | 'audio' | 'camera' | 'appAudio') => {
-    const labelMap: Record<typeof type, string> = {
-      video: "Screen",
-      audio: "Microphone",
-      camera: "Camera",
-      appAudio: "App Audio"
-    };
-    const label = labelMap[type] || "Source";
+  const addSource = useCallback(async (type: 'video' | 'audio' | 'camera') => {
+    const label = type.charAt(0).toUpperCase() + type.slice(1);
     const { data } = await supabase
       .from('sources')
       .insert({ room_id: roomName, label, type, is_enabled: true })

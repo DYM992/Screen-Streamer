@@ -14,7 +14,6 @@ import {
   RefreshCw,
   Eye,
   EyeOff,
-  Volume2,
 } from "lucide-react";
 import { StreamSource } from "@/hooks/useStreamManager";
 import { toast } from "sonner";
@@ -54,15 +53,11 @@ const SourceCard = ({
     setIsEditing(false);
   };
 
-  // async toggle to catch activation errors
-  const toggleVisibility = async () => {
+  const toggleVisibility = () => {
     if (source.isActive) {
       onDeactivate(source.id);
     } else {
-      const success = await onActivate(source.id);
-      if (!success) {
-        toast.error(`Failed to enable ${source.label}`);
-      }
+      onActivate(source.id);
     }
   };
 
@@ -75,7 +70,6 @@ const SourceCard = ({
   const getIcon = () => {
     if (source.type === "video") return <Monitor className="w-4 h-4 text-indigo-400" />;
     if (source.type === "camera") return <Camera className="w-4 h-4 text-pink-400" />;
-    if (source.type === "appAudio") return <Volume2 className="w-4 h-4 text-emerald-400" />;
     return <Mic className="w-4 h-4 text-emerald-400" />;
   };
 
@@ -208,7 +202,7 @@ const SourceCard = ({
           )}
         </div>
 
-        {/* Device selector – only for camera or mic */}
+        {/* Device selector – always visible for camera/audio */}
         {(source.type === "camera" || source.type === "audio") && (
           <div className="mt-2">
             <DeviceSelector
@@ -219,7 +213,7 @@ const SourceCard = ({
           </div>
         )}
 
-        {/* Dropdown to (‑select video source – only for screen share */}
+        {/* Dropdown to (‑select video source */}
         {source.type === "video" && (
           <div className="mt-2">
             <Select
