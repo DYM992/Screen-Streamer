@@ -275,8 +275,15 @@ export const useStreamManager = (roomName: string) => {
     await supabase.from('sources').delete().eq('id', id);
   }, []);
 
-  const updateSourceLabel = useCallback((id: string, label: string) => {
+  // Updated to persist label changes to Supabase
+  const updateSourceLabel = useCallback(async (id: string, label: string) => {
     setSources(prev => prev.map(s => s.id === id ? { ...s, label } : s));
+    const source = sourcesRef.current.find(s => s.id === id);
+    if (source?.dbId) {
+      await supabase.from('sources')
+        .update({ label })
+        .eq('id', source.dbId);
+    }
   }, []);
 
   const reconnectAll = useCallback(async () => {
