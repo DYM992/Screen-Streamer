@@ -61,10 +61,11 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onActivate, onDeacti
       source.isActive ? 'border-indigo-500/20 bg-slate-900/80' : 'border-slate-800 bg-slate-900/40 grayscale opacity-60'
     }`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+        {/* Left side – icon + label + edit */}
         <div className="flex items-center gap-2 flex-1 mr-2">
           {getIcon()}
           {isEditing ? (
-            <div className="flex gap-1 flex-1">
+            <div className="flex gap-1 flex-1 items-center">
               <Input 
                 value={label} 
                 onChange={(e) => setLabel(e.target.value)}
@@ -76,16 +77,18 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onActivate, onDeacti
               </Button>
             </div>
           ) : (
-            <CardTitle className="text-sm font-bold truncate max-w-[120px] text-slate-100">
+            <CardTitle className="text-sm font-bold truncate max-w-[120px] text-slate-100 self-center">
               {source.label}
             </CardTitle>
           )}
           {!isEditing && (
-            <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-white" onClick={() => setIsEditing(true)}>
+            <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-white self-center" onClick={() => setIsEditing(true)}>
               <Edit2 className="w-3 h-3" />
             </Button>
           )}
         </div>
+
+        {/* Right side – action icons */}
         <div className="flex gap-1 items-center">
           <Button 
             variant="ghost" 
