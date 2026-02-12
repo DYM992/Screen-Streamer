@@ -140,7 +140,7 @@ const Broadcaster = () => {
                   className="h-8 w-8 text-indigo-400 hover:text-white"
                   title="Rename Room"
                 >
-                  <Edit2 className="w-4 h-4" />
+                  
                 </Button>
               </div>
               <div className="flex items-center gap-2">
