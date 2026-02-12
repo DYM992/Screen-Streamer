@@ -21,40 +21,45 @@ export const useStreamManager = (peerId?: string) => {
   }, [sources]);
 
   const updateEncodingParameters = useCallback((mediaCall: any, source: StreamSource) => {
-    // @ts-ignore - Accessing internal peerConnection for deep optimization
-    const pc = mediaCall.peerConnection as RTCPeerConnection;
-    if (!pc) return;
-
     const applyParams = () => {
+      // @ts-ignore
+      const pc = mediaCall.peerConnection as RTCPeerConnection;
+      if (!pc) return;
+
       pc.getSenders().forEach(sender => {
         if (sender.track?.kind === 'video') {
           const params = sender.getParameters();
-          if (!params.encodings) params.encodings = [{}];
+          if (!params.encodings || params.encodings.length === 0) {
+            params.encodings = [{}];
+          }
           
-          // Optimization: Scale resolution down to reduce data load (Chroma-like efficiency)
-          // A factor of 1.5 reduces pixel count by ~55%, significantly improving latency
           params.encodings[0].scaleResolutionDownBy = source.scaleFactor || 1.0;
-          
-          // Force high performance parameters
           // @ts-ignore
           params.degradationPreference = 'maintain-framerate';
-          params.encodings[0].maxBitrate = 8000000; // 8 Mbps is plenty for downscaled 60fps
+          params.encodings[0].maxBitrate = 8000000;
           params.encodings[0].maxFramerate = 60;
           params.encodings[0].priority = 'high';
           params.encodings[0].networkPriority = 'high';
           
-          sender.setParameters(params).catch(console.error);
+          sender.setParameters(params).catch(() => {
+            // Silently fail if parameters can't be set yet
+          });
         }
       });
     };
 
-    if (pc.iceConnectionState === 'connected') {
-      applyParams();
-    } else {
-      pc.oniceconnectionstatechange = () => {
-        if (pc.iceConnectionState === 'connected') applyParams();
-      };
-    }
+    // Wait for the peer connection to be available and stable
+    const checkInterval = setInterval(() => {
+      // @ts-ignore
+      const pc = mediaCall.peerConnection as RTCPeerConnection;
+      if (pc && pc.iceConnectionState === 'connected') {
+        applyParams();
+        clearInterval(checkInterval);
+      }
+    }, 500);
+
+    // Safety timeout
+    setTimeout(() => clearInterval(checkInterval), 10000);
   }, []);
 
   useEffect(() => {
@@ -120,7 +125,7 @@ export const useStreamManager = (peerId?: string) => {
         label: "Screen Capture",
         type: 'video',
         stream,
-        scaleFactor: 1.5 // Default to 1.5x downscale for better efficiency
+        scaleFactor: 1.5
       };
 
       setSources(prev => [...prev, newSource]);

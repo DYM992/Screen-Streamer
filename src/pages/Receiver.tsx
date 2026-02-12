@@ -28,29 +28,24 @@ const Receiver = () => {
 
     peer.on('open', () => {
       setStatus('connected');
-      // Connect to the broadcaster
-      peer.call(room, new MediaStream()); 
       
+      // Register call listener BEFORE initiating the handshake
       peer.on('call', (incomingCall) => {
         incomingCall.answer();
         
-        // Optimization: Apply jitter buffer hint to incoming tracks
-        // @ts-ignore - Accessing internal peerConnection
-        const pc = incomingCall.peerConnection as RTCPeerConnection;
-        if (pc) {
-          pc.ontrack = (event) => {
-            const receiver = event.receiver;
-            if (receiver) {
-              // Set a small 100ms delay to allow for jitter smoothing
+        incomingCall.on('stream', (remoteStream) => {
+          // Apply jitter buffer hint to the receivers of this specific call
+          // @ts-ignore - Accessing internal peerConnection
+          const pc = incomingCall.peerConnection as RTCPeerConnection;
+          if (pc) {
+            pc.getReceivers().forEach(receiver => {
               // @ts-ignore - playoutDelayHint is a newer WebRTC feature
               if ('playoutDelayHint' in receiver) {
                 receiver.playoutDelayHint = 0.1; 
               }
-            }
-          };
-        }
+            });
+          }
 
-        incomingCall.on('stream', (remoteStream) => {
           const metadata = (incomingCall as any).metadata || {};
           const newSource: RemoteSource = {
             id: metadata.id || `remote-${Date.now()}`,
@@ -65,6 +60,14 @@ const Receiver = () => {
           });
         });
       });
+
+      // Initiate handshake with broadcaster
+      peer.call(room, new MediaStream()); 
+    });
+
+    peer.on('error', (err) => {
+      console.error('Peer error:', err);
+      setStatus('error');
     });
 
     return () => peer.destroy();
@@ -74,7 +77,7 @@ const Receiver = () => {
     ? sources.filter(s => s.id === targetSourceId)
     : sources;
 
-  if (status === 'error') return <div className="bg-black text-red-500 p-4">Error: No room specified</div>;
+  if (status === 'error') return <div className="bg-black text-red-500 p-4">Error: Connection failed. Check Room ID.</div>;
   if (status === 'connecting') return <div className="bg-black text-white p-4">Connecting to {room}...</div>;
 
   return (
