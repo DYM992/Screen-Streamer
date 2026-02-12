@@ -4,7 +4,7 @@ import { useStreamManager } from '@/hooks/useStreamManager';
 import SourceCard from '@/components/SourceCard';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Monitor, Mic, Camera, LayoutGrid, Info, ArrowLeft, Play, Square, RefreshCw } from "lucide-react";
+import { Monitor, Mic, Camera, LayoutGrid, Info, ArrowLeft, Play, Square, RefreshCw, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const Broadcaster = () => {
@@ -30,7 +30,7 @@ const Broadcaster = () => {
     saveToDatabase,
   } = useStreamManager(roomName);
 
-  // Persist rename when user leaves the input (blur or Enter)
+  // Persist rename when user confirms (button click or Enter)
   const commitRoomIdChange = async () => {
     if (editingRoomId === roomName) return; // nothing changed
 
@@ -73,7 +73,7 @@ const Broadcaster = () => {
     setEditingRoomId(e.target.value);
   };
 
-  // Save on blur
+  // Save on blur (optional)
   const handleRoomIdBlur = async () => {
     await commitRoomIdChange();
   };
@@ -81,7 +81,7 @@ const Broadcaster = () => {
   // Save on Enter key
   const handleRoomIdKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      e.target.blur(); // trigger blur handler
+      e.target.blur(); // trigger blur handler which calls commit
     }
   };
 
@@ -98,7 +98,7 @@ const Broadcaster = () => {
         const newParams = new URLSearchParams(searchParams);
         newParams.delete("autoStart");
         setSearchParams(newParams, { replace: true });
-      }, 500); // short delay to let the component settle
+      }, 500);
       return () => clearTimeout(timer);
     }
   }, [roomName, isBroadcasting]);
@@ -134,8 +134,8 @@ const Broadcaster = () => {
 
           <div className="flex flex-wrap items-center gap-4">
             <div className="bg-slate-900/50 border border-slate-800 p-1.5 rounded-2xl flex items-center gap-4 pr-4">
-              <div className="bg-slate-950 px-4 py-2 rounded-xl border border-slate-800">
-                <Label className="text-[10px] text-slate-500 uppercase font-black block mb-1">Room ID</Label>
+              <div className="bg-slate-950 px-4 py-2 rounded-xl border border-slate-800 flex items-center gap-2">
+                <Label className="text-[10px] text-slate-500 uppercase font-black mb-0">Room ID</Label>
                 <input
                   value={editingRoomId}
                   onChange={handleRoomIdChange}
@@ -144,6 +144,18 @@ const Broadcaster = () => {
                   disabled={isBroadcasting}
                   className="bg-transparent border-none focus:ring-0 text-sm font-mono w-32 p-0 disabled:opacity-50"
                 />
+                {/* Show confirm button only when the edited value differs */}
+                {editingRoomId !== roomName && !isBroadcasting && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={commitRoomIdChange}
+                    className="h-6 w-6 text-emerald-500 hover:text-emerald-400"
+                    title="Confirm Room ID"
+                  >
+                    <Check className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${isBroadcasting ? 'bg-emerald-500 animate-pulse' : 'bg-slate-700'}`} />
