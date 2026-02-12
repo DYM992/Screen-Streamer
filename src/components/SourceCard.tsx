@@ -103,11 +103,13 @@ const SourceCard = ({ source, roomName, onRemove, onRename, onActivate, onDeacti
             <Trash2 className="w-4 h-4" />
           </Button>
           {(source.type === 'camera' || source.type === 'audio') && (
-            <DeviceSelector
-              type={source.type as any}
-              selectedDeviceId={source.deviceId}
-              onChange={(deviceId) => onDeviceChange(source.id, deviceId)}
-            />
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+              <DeviceSelector
+                type={source.type as any}
+                selectedDeviceId={source.deviceId}
+                onChange={(deviceId) => onDeviceChange(source.id, deviceId)}
+              />
+            </div>
           )}
         </div>
       </CardHeader>
