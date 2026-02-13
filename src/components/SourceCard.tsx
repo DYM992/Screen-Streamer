@@ -55,12 +55,15 @@ const SourceCard = ({
   };
 
   const toggleVisibility = () => {
-    if (source.isActive) onDeactivate(source.id);
-    else onActivate(source.id);
+    if (source.isActive) {
+      onDeactivate(source.id);
+    } else {
+      onActivate(source.id);
+    }
   };
 
   const copyObsUrl = () => {
-    const url = `${APP_BASE_URL}/receiver?room=${roomName}&sourceId=${encodeURIComponent(source.label)}`;
+    const url = `${APP_BASE_URL}/receiver?room=${roomName}&sourceId=${source.id}`;
     navigator.clipboard.writeText(url);
     toast.success(`OBS URL for ${source.label} copied!`);
   };
@@ -210,7 +213,11 @@ const SourceCard = ({
 
         {source.type === "video" && (
           <div className="mt-2">
-            <Select onValueChange={async () => await onActivate(source.id)}>
+            <Select
+              onValueChange={async () => {
+                await onActivate(source.id);
+              }}
+            >
               <SelectTrigger className="h-9 w-full">
                 <SelectValue placeholder="Select video source" />
               </SelectTrigger>
