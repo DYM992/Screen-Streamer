@@ -18,6 +18,7 @@ import {
 import { StreamSource } from "@/hooks/useStreamManager";
 import { toast } from "sonner";
 import { DeviceSelector } from "./DeviceSelector";
+import { APP_BASE_URL } from "@/lib/config";
 
 interface SourceCardProps {
   source: StreamSource;
@@ -62,7 +63,7 @@ const SourceCard = ({
   };
 
   const copyObsUrl = () => {
-    const url = `${window.location.origin}/receiver?room=${roomName}&sourceId=${source.id}`;
+    const url = `${APP_BASE_URL}/receiver?room=${roomName}&sourceId=${source.id}`;
     navigator.clipboard.writeText(url);
     toast.success(`OBS URL for ${source.label} copied!`);
   };
