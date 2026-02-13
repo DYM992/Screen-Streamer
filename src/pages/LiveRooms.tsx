@@ -103,7 +103,7 @@ const LiveRooms = () => {
                           className={`h-8 w-8 rounded-full transition-all ${
                             room.is_live 
                             ? 'bg-red-500 text-white hover:bg-red-600' 
-                            : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white'
+                            : 'bg-emerald-500/10 text-emerald-500 hover-bg-emerald-500 hover:text-white'
                           }`}
                         >
                           {room.is_live ? <Square className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
@@ -130,9 +130,11 @@ const LiveRooms = () => {
                   </div>
                 </Card>
 
-                {/* Expanded source list */}
+                {/* Expanded source list – smooth transition */}
                 {expandedRoom === room.id && (
-                  <Card className="mt-2 bg-slate-800 border-slate-700 w-max">
+                  <Card
+                    className="mt-2 bg-slate-800 border-slate-700 w-max transition-all duration-600 ease-in-out"
+                  >
                     <CardHeader className="p-2">
                       <CardTitle className="text-sm font-medium text-white">
                         Sources for {room.id}

@@ -35,6 +35,7 @@ export const LiveRoomSources = ({ roomId }: Props) => {
     fetchSources();
   }, [roomId]);
 
+  // fade‑in after load – slower, smoother
   useEffect(() => {
     if (!loading) {
       const timer = setTimeout(() => setVisible(true), 10);
@@ -66,7 +67,7 @@ export const LiveRoomSources = ({ roomId }: Props) => {
 
   return (
     <div
-      className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 p-2 transition-opacity duration-300 ease-out ${
+      className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 p-2 transition-opacity duration-600 ease-in-out ${
         visible ? "opacity-100" : "opacity-0"
       }`}
     >
