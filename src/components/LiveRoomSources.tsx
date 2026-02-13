@@ -31,11 +31,35 @@ export const LiveRoomSources = ({ roomId }: Props) => {
     setLoading(false);
   };
 
+  // Initial load
   useEffect(() => {
     fetchSources();
   }, [roomId]);
 
-  // fade‑in after load – smoother
+  // Real‑time updates for sources in this room
+  useEffect(() => {
+    const channel = supabase
+      .channel(`sources-${roomId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "sources",
+          filter: `room_id=eq.${roomId}`,
+        },
+        () => {
+          fetchSources();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [roomId]);
+
+  // Fade‑in after load – smoother
   useEffect(() => {
     if (!loading) {
       const timer = setTimeout(() => setVisible(true), 10);
