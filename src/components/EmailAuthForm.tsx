@@ -17,8 +17,12 @@ export const EmailAuthForm = () => {
       password,
     });
     if (error) {
-      // Show generic error message
-      toast.error(error.message);
+      // Detect rate‑limit errors (Supabase returns status 429)
+      if (error.status === 429 || error.message.toLowerCase().includes("rate limit")) {
+        toast.error("Too many login attempts. Please wait a few minutes before trying again.");
+      } else {
+        toast.error(error.message);
+      }
     } else {
       toast.success("Logged in successfully");
     }
