@@ -18,8 +18,14 @@ const SignUp = () => {
       email,
       password,
     });
-    if (error) toast.error(error.message);
-    else {
+    if (error) {
+      // Detect rate‑limit errors (Supabase returns status 429)
+      if (error.status === 429 || error.message.toLowerCase().includes("rate limit")) {
+        toast.error("Too many sign‑up attempts. Please wait a few minutes before trying again.");
+      } else {
+        toast.error(error.message);
+      }
+    } else {
       toast.success("Check your email for a confirmation link");
       navigate("/");
     }
