@@ -7,7 +7,8 @@ const Login = () => {
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
       <Auth
         supabaseClient={supabase}
-        providers={["google"]}
+        // No external providers – only email/password
+        providers={[]}
         appearance={{
           theme: ThemeSupa,
         }}
