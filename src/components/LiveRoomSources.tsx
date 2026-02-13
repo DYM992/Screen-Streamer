@@ -76,10 +76,14 @@ export const LiveRoomSources = ({ roomId }: Props) => {
           key={src.id}
           className={`flex flex-col items-center justify-center w-20 h-20 gap-1 ${
             src.is_enabled
-              ? "bg-emerald-500/20 border-emerald-500"
-              : "bg-slate-900 border-slate-800"
-          } border rounded-lg transition-colors cursor-pointer`}
-          onClick={() => navigate(`/receiver?room=${roomId}&sourceId=${src.id}`)}
+              ? "bg-emerald-500/20 border-emerald-500 cursor-pointer"
+              : "bg-slate-900 border-slate-800 cursor-default"
+          } border rounded-lg transition-colors`}
+          onClick={() => {
+            if (src.is_enabled) {
+              navigate(`/receiver?room=${roomId}&sourceId=${src.id}`);
+            }
+          }}
         >
           {getIcon(src.type)}
           <span className="text-xs font-medium text-white truncate">{src.label}</span>
