@@ -50,7 +50,6 @@ const Receiver = () => {
           });
         });
       });
-      // Initiate a dummy call to trigger the broadcaster's source calls
       peer.call(room, new MediaStream());
     });
 
@@ -63,25 +62,7 @@ const Receiver = () => {
     : sources;
 
   if (status === 'error') return null;
-  if (status === 'loading') return null;
-
-  // Show a waiting UI when no matching source is yet available
-  if (displayedSources.length === 0) {
-    return (
-      <div className="fixed inset-0 bg-transparent flex items-center justify-center">
-        <p className="text-sm text-slate-400">Waiting for stream…</p>
-      </div>
-    );
-  }
-
-  // Autoplay all video elements once streams are attached
-  useEffect(() => {
-    const videos = document.querySelectorAll('video');
-    videos.forEach(v => {
-      // Ensure the video element is playing; ignore errors (e.g., autoplay blocked)
-      v.play().catch(() => {});
-    });
-  }, [displayedSources]);
+  if (status === 'connecting') return null;
 
   return (
     <div className="fixed inset-0 bg-transparent flex items-center justify-center">
@@ -93,7 +74,7 @@ const Receiver = () => {
             <video
               autoPlay
               playsInline
-              muted={false}
+              muted
               controls={false}
               ref={el => { if (el && el.srcObject !== source.stream) el.srcObject = source.stream; }}
               className="w-screen h-screen object-fill bg-black"
