@@ -110,7 +110,7 @@ const Receiver = () => {
               <Card
                 key={roomData.id}
                 className="bg-slate-900 border-slate-800 hover:border-indigo-500/40 transition-all cursor-pointer group"
-                onClick={() => navigate(`/receiver?room=${roomData.id}`)}
+                onClick={() => navigate(`/source-list?room=${roomData.id}`)}
               >
                 <div className="aspect-video bg-slate-950 relative overflow-hidden">
                   {roomData.thumbnail ? (
