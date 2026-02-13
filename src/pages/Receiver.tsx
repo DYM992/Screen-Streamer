@@ -1,14 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import Peer from "peerjs";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { Monitor, Camera, Mic } from "lucide-react";
 
@@ -178,31 +171,7 @@ const Receiver = () => {
           ))}
         </div>
       )}
-
-      {/* Render selected source(s) */}
-      {displayedSources.map((source) => (
-        <div key={source.id} className={`relative ${source.type === "audio" ? "hidden" : ""} w-full h-full`}>
-          {source.type === "audio" ? (
-            <audio
-              autoPlay
-              ref={(el) => {
-                if (el && el.srcObject !== source.stream) el.srcObject = source.stream;
-              }}
-            />
-          ) : (
-            <video
-              autoPlay
-              playsInline
-              muted={false}
-              controls={false}
-              ref={(el) => {
-                if (el && el.srcObject !== source.stream) el.srcObject = source.stream;
-              }}
-              className="w-screen h-screen object-fill bg-black"
-            />
-          )}
-        </div>
-      ))}
+      {/* No video/audio preview rendered – only source cards are shown */}
     </div>
   );
 };
