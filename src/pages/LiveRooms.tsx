@@ -66,7 +66,7 @@ const LiveRooms = () => {
             {rooms.map(room => (
               <div key={room.id}>
                 <Card
-                  className="bg-slate-900 border-slate-800 hover:border-indigo-500/50 transition-all cursor-pointer group overflow-hidden relative"
+                  className="bg-slate-900 border border-slate-800 rounded-[2rem] overflow-hidden hover:border-indigo-500/40 transition-all cursor-pointer flex flex-col"
                   onClick={() => toggleExpand(room.id)}
                 >
                   <div className="aspect-video bg-slate-950 relative overflow-hidden">
@@ -82,30 +82,57 @@ const LiveRooms = () => {
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
+                    
+                    {/* Live Badge */}
+                    {room.is_live && (
+                      <div className="absolute top-4 left-4 flex items-center gap-2 bg-red-500 px-3 py-1 rounded-full shadow-lg shadow-red-500/20">
+                        <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Live</span>
+                      </div>
+                    )}
+
                     <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
                       <span className="font-mono text-white font-bold text-sm bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
                         {room.id}
                       </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-full bg-slate-800/50 text-slate-400 hover:bg-red-500 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
-                      >
-                        <ArrowRight className="w-5 h-5" />
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/broadcaster?room=${room.id}`); }}
+                          className={`h-8 w-8 rounded-full transition-all ${
+                            room.is_live 
+                            ? 'bg-red-500 text-white hover:bg-red-600' 
+                            : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white'
+                          }`}
+                        >
+                          {room.is_live ? <Square className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
+                        </Button>
+                        <Button 
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => { e.stopPropagation(); /* delete logic could go here */ }}
+                          className="h-8 w-8 text-slate-400 hover:text-red-400"
+                        >
+                          <ArrowRight className="w-5 h-5" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                  <CardHeader className="p-4">
-                    <CardTitle className="text-lg font-bold text-white">{room.id}</CardTitle>
-                    <CardDescription className="text-sm text-slate-400">
-                      Created: {new Date(room.created_at).toLocaleDateString()}
-                    </CardDescription>
-                  </CardHeader>
+                  <div className="p-5 flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Last Active</p>
+                      <p className="text-xs text-slate-300 font-bold">
+                        {new Date(room.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <ArrowRight className="w-5 h-5 text-slate-700 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
+                  </div>
                 </Card>
 
                 {/* Expanded source list */}
                 {expandedRoom === room.id && (
-                  <Card className="mt-2 bg-slate-800 border-slate-700">
+                  <Card className="mt-2 bg-slate-800 border-slate-700 w-max">
                     <CardHeader className="p-2">
                       <CardTitle className="text-sm font-medium text-white">
                         Sources for {room.id}
