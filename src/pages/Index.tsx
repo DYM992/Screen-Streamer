@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Radio, Tv, ShieldCheck, History, ArrowRight, Plus, Trash2, Monitor, Play, Square, Google } from "lucide-react";
+import { Radio, Tv, ShieldCheck, History, ArrowRight, Plus, Trash2, Monitor, Play, Square, LogIn } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -96,7 +96,7 @@ const Index = () => {
             onClick={handleGoogleLogin}
             className="w-full mt-4 flex items-center justify-center gap-2 bg-white text-black hover:bg-gray-100"
           >
-            <Google className="w-5 h-5" />
+            <LogIn className="w-5 h-5" />
             Sign in with Google
           </Button>
         </DialogContent>
