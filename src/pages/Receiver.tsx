@@ -10,6 +10,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { Monitor, Camera, Mic } from "lucide-react";
 
 interface RemoteSource {
   id: string;
@@ -149,27 +150,36 @@ const Receiver = () => {
   if (status === "connecting") return null;
 
   return (
-    <div className="fixed inset-0 bg-transparent flex flex-col items-center justify-center">
-      {/* Source selector */}
+    <div className="fixed inset-0 bg-transparent flex flex-col items-center justify-start pt-4 overflow-y-auto">
+      {/* Source cards grid */}
       {sources.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-2 justify-center">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full max-w-5xl mb-6">
           {sources.map((src) => (
-            <Button
+            <Card
               key={src.id}
-              variant={selectedSourceId === src.label ? "default" : "outline"}
-              size="sm"
+              className={`cursor-pointer transition-transform hover:scale-105 ${
+                selectedSourceId === src.label ? "border-indigo-500/50 bg-slate-800" : "border-slate-800 bg-slate-900"
+              }`}
               onClick={() => {
                 setSelectedSourceId(src.label);
                 setSearchParams({ room, sourceId: src.label });
               }}
             >
-              {src.label}
-            </Button>
+              <CardHeader className="flex items-center space-x-3">
+                {src.type === "video" && <Monitor className="w-5 h-5 text-indigo-400" />}
+                {src.type === "camera" && <Camera className="w-5 h-5 text-pink-400" />}
+                {src.type === "audio" && <Mic className="w-5 h-5 text-emerald-400" />}
+                <CardTitle className="text-sm font-medium">{src.label}</CardTitle>
+              </CardHeader>
+              <CardContent className="text-xs text-slate-400">
+                {src.type === "audio" ? "Audio source" : "Video source"}
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
 
-      {/* Render selected sources */}
+      {/* Render selected source(s) */}
       {displayedSources.map((source) => (
         <div key={source.id} className={`relative ${source.type === "audio" ? "hidden" : ""} w-full h-full`}>
           {source.type === "audio" ? (
