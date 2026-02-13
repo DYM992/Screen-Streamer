@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Radio, Tv, ShieldCheck, History, ArrowRight, Plus, Trash2, Monitor, Play, Square } from "lucide-react";
+import { Radio, Tv, ShieldCheck, History, ArrowRight, Plus, Trash2, Monitor, Play, Square, Google } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -66,6 +66,13 @@ const Index = () => {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({ provider: "google" });
+    if (error) {
+      toast.error("Login failed");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative">
       {/* Login button that opens a dialog */}
@@ -84,10 +91,14 @@ const Index = () => {
             <DialogTitle>Login</DialogTitle>
             <DialogDescription>Please sign in to continue.</DialogDescription>
           </DialogHeader>
-          {/* Placeholder for future login form */}
-          <div className="mt-4 text-center text-sm text-slate-500">
-            Login form will appear here.
-          </div>
+          {/* Google login button */}
+          <Button
+            onClick={handleGoogleLogin}
+            className="w-full mt-4 flex items-center justify-center gap-2 bg-white text-black hover:bg-gray-100"
+          >
+            <Google className="w-5 h-5" />
+            Sign in with Google
+          </Button>
         </DialogContent>
       </Dialog>
 
