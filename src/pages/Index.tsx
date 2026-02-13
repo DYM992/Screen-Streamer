@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -94,17 +94,24 @@ const Index = () => {
             Sign in with Google
           </Button>
 
-          {/* Email login/signup toggle button */}
+          {/* Email login toggle */}
           <Button
             onClick={() => setShowEmailForm(!showEmailForm)}
             className="w-full mt-2 flex items-center justify-center gap-2 bg-white text-black hover:bg-gray-100"
           >
             <LogIn className="w-5 h-5" />
-            {showEmailForm ? "Hide Email Form" : "Sign in / Sign up with Email"}
+            {showEmailForm ? "Hide Email Form" : "Sign in with Email"}
           </Button>
 
           {/* Email auth form */}
           {showEmailForm && <EmailAuthForm />}
+
+          {/* Link to sign‑up page */}
+          <div className="mt-4 text-center">
+            <Link to="/signup" className="text-indigo-500 hover:underline">
+              Don’t have an account? Sign up
+            </Link>
+          </div>
         </DialogContent>
       </Dialog>
 
