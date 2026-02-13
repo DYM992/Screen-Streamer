@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Monitor, Video, Audio, ArrowRight, RefreshCw } from "lucide-react";
+import { Monitor, ArrowRight, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
@@ -19,6 +19,7 @@ interface Props {
 export const LiveRoomSources = ({ roomId }: Props) => {
   const [sources, setSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState(true);
+  const [visible, setVisible] = useState(false);
   const navigate = useNavigate();
 
   const fetchSources = async () => {
@@ -34,6 +35,14 @@ export const LiveRoomSources = ({ roomId }: Props) => {
   useEffect(() => {
     fetchSources();
   }, [roomId]);
+
+  // Trigger fade‑in after data loads
+  useEffect(() => {
+    if (!loading) {
+      const timer = setTimeout(() => setVisible(true), 10);
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
 
   if (loading) {
     return (
@@ -52,31 +61,36 @@ export const LiveRoomSources = ({ roomId }: Props) => {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+    <div
+      className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-2 transition-opacity duration-300 ease-out ${
+        visible ? "opacity-100" : "opacity-0"
+      }`}
+    >
       {sources.map((src) => (
         <Card
           key={src.id}
-          className="bg-slate-900 border-slate-800 hover:border-indigo-500/50 transition-all cursor-pointer group"
+          className="bg-slate-900 border-slate-800 hover:border-indigo-500/50 transition-all cursor-pointer group p-2"
         >
-          <CardHeader className="p-4">
-            <CardTitle className="text-lg font-bold text-white">{src.label}</CardTitle>
-            <CardDescription className="text-sm text-slate-400">
+          <CardHeader className="p-2">
+            <CardTitle className="text-base font-bold text-white">{src.label}</CardTitle>
+            <CardDescription className="text-xs text-slate-400">
               {src.type.charAt(0).toUpperCase() + src.type.slice(1)}
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-4 flex justify-between items-center">
+          <CardContent className="p-2 flex justify-between items-center">
             <Button
               variant="outline"
-              className="flex items-center gap-2"
+              size="sm"
+              className="flex items-center gap-1"
               onClick={() => navigate(`/receiver?room=${roomId}&sourceId=${src.id}`)}
             >
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-3 h-3" />
               View
             </Button>
             {src.is_enabled ? (
-              <span className="text-sm text-emerald-500 font-medium">Enabled</span>
+              <span className="text-xs text-emerald-500 font-medium">Enabled</span>
             ) : (
-              <span className="text-sm text-rose-500 font-medium">Disabled</span>
+              <span className="text-xs text-rose-500 font-medium">Disabled</span>
             )}
           </CardContent>
         </Card>
