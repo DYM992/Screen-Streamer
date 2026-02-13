@@ -74,17 +74,14 @@ export const LiveRoomSources = ({ roomId }: Props) => {
       {sources.map((src) => (
         <Card
           key={src.id}
-          className={`flex items-center p-2 h-20 ${
+          className={`flex items-center justify-center w-20 h-20 ${
             src.is_enabled
               ? "bg-emerald-500/20 border-emerald-500"
               : "bg-slate-900 border-slate-800"
           } border rounded-lg transition-colors cursor-pointer`}
           onClick={() => navigate(`/receiver?room=${roomId}&sourceId=${src.id}`)}
         >
-          <div className="flex items-center gap-2 mr-2">
-            {getIcon(src.type)}
-            <CardTitle className="text-sm font-medium text-white">{src.label}</CardTitle>
-          </div>
+          {getIcon(src.type)}
         </Card>
       ))}
     </div>
