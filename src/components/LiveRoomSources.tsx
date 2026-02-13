@@ -35,7 +35,7 @@ export const LiveRoomSources = ({ roomId }: Props) => {
     fetchSources();
   }, [roomId]);
 
-  // fade‑in after load – slower, smoother
+  // fade‑in after load – smoother
   useEffect(() => {
     if (!loading) {
       const timer = setTimeout(() => setVisible(true), 10);
@@ -51,10 +51,13 @@ export const LiveRoomSources = ({ roomId }: Props) => {
     );
   }
 
-  if (sources.length === 0) {
+  // Filter only enabled sources
+  const enabledSources = sources.filter((s) => s.is_enabled);
+
+  if (enabledSources.length === 0) {
     return (
       <div className="text-center text-slate-400 py-4">
-        No sources available for this room.
+        No enabled sources for this room.
       </div>
     );
   }
@@ -71,19 +74,11 @@ export const LiveRoomSources = ({ roomId }: Props) => {
         visible ? "opacity-100" : "opacity-0"
       }`}
     >
-      {sources.map((src) => (
+      {enabledSources.map((src) => (
         <Card
           key={src.id}
-          className={`flex flex-col items-center justify-center w-20 h-20 gap-1 ${
-            src.is_enabled
-              ? "bg-emerald-500/20 border-emerald-500 cursor-pointer"
-              : "bg-slate-900 border-slate-800 cursor-default"
-          } border rounded-lg transition-colors`}
-          onClick={() => {
-            if (src.is_enabled) {
-              navigate(`/receiver?room=${roomId}&sourceId=${src.id}`);
-            }
-          }}
+          className="flex flex-col items-center justify-center w-20 h-20 gap-1 bg-emerald-500/20 border-emerald-500 cursor-pointer border rounded-lg transition-colors"
+          onClick={() => navigate(`/receiver?room=${roomId}&sourceId=${src.id}`)}
         >
           {getIcon(src.type)}
           <span className="text-xs font-medium text-white truncate">{src.label}</span>
