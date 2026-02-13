@@ -113,9 +113,10 @@ const Broadcaster = () => {
     }
   };
 
-  const handleNameKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+  // Fixed handler – use the correct ref and remove stray characters
+  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      (target.current!.blur();
+      inputRef.current?.blur();
     }
   };
 
@@ -192,7 +193,7 @@ const Broadcaster = () => {
                 <input
                   value={roomId}
                   disabled
-                  className="bg-transparent border-none focus:ring-0 text-sm font-mono w-32 p-0 opacity-50"
+                  className="bg-transparent border-none focus-ring-0 text-sm font-mono w-32 p-0 opacity-50"
                 />
               </div>
               <div className="flex items-center gap-2">
