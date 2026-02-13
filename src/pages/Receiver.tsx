@@ -50,6 +50,7 @@ const Receiver = () => {
           });
         });
       });
+      // Initiate a dummy call to trigger the broadcaster's source calls
       peer.call(room, new MediaStream());
     });
 
@@ -63,6 +64,15 @@ const Receiver = () => {
 
   if (status === 'error') return null;
   if (status === 'connecting') return null;
+
+  // Show a simple waiting UI when no matching source is yet available
+  if (displayedSources.length === 0) {
+    return (
+      <div className="fixed inset-0 bg-transparent flex items-center justify-center">
+        <p className="text-sm text-slate-400">Waiting for stream…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-transparent flex items-center justify-center">
