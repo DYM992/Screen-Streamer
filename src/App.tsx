@@ -8,7 +8,6 @@ import Broadcaster from "./pages/Broadcaster";
 import Receiver from "./pages/Receiver";
 import LiveRooms from "./pages/LiveRooms";
 import NotFound from "./pages/NotFound";
-import Login from "./pages/Login";
 
 const queryClient = new QueryClient();
 
@@ -23,7 +22,6 @@ const App = () => (
           <Route path="/broadcaster" element={<Broadcaster />} />
           <Route path="/receiver" element={<Receiver />} />
           <Route path="/live" element={<LiveRooms />} />
-          <Route path="/login" element={<Login />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

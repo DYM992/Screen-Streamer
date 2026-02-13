@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Radio, Tv, ShieldCheck, History, ArrowRight, Plus, Trash2, Monitor, Play, Square } from "lucide-react";
@@ -20,7 +20,7 @@ const Index = () => {
 
   useEffect(() => {
     fetchRooms();
-
+    
     // Subscribe to room changes for real-time live status
     const channel = supabase
       .channel('room-status')
@@ -66,17 +66,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative">
-      {/* Login button top‑right */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => navigate("/login")}
-        className="absolute top-4 right-4 text-slate-400 hover:text-white"
-      >
-        Login
-      </Button>
-
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
       <div className="max-w-6xl w-full space-y-12 py-12">
         <div className="text-center space-y-4">
           <h1 className="text-7xl font-black tracking-tighter text-white">
@@ -153,6 +143,7 @@ const Index = () => {
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
                     
+                    {/* Live Badge */}
                     {room.is_live && (
                       <div className="absolute top-4 left-4 flex items-center gap-2 bg-red-500 px-3 py-1 rounded-full shadow-lg shadow-red-500/20">
                         <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
@@ -172,7 +163,7 @@ const Index = () => {
                           className={`h-8 w-8 rounded-full transition-all ${
                             room.is_live 
                             ? 'bg-red-500 text-white hover:bg-red-600' 
-                            : 'bg-emerald-500/10 text-emerald-500 hover-bg-emerald-500 hover:text-white'
+                            : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white'
                           }`}
                         >
                           {room.is_live ? <Square className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
