@@ -30,7 +30,8 @@ const Receiver = () => {
   const navigate = useNavigate();
 
   const room = searchParams.get("room");
-  const targetSourceId = searchParams.get("sourceId");
+  const rawSourceId = searchParams.get("sourceId");
+  const decodedSourceId = rawSourceId ? decodeURIComponent(rawSourceId) : null;
 
   const [sources, setSources] = useState<RemoteSource[]>([]);
   const [status, setStatus] = useState<"connecting" | "connected" | "error">(
@@ -94,9 +95,9 @@ const Receiver = () => {
   }, [room]);
 
   // Filter by label (human‑readable name) or fall back to UUID if needed
-  const displayedSources = targetSourceId
+  const displayedSources = decodedSourceId
     ? sources.filter(
-        (s) => s.label === targetSourceId || s.id === targetSourceId,
+        (s) => s.label === decodedSourceId || s.id === decodedSourceId,
       )
     : sources;
 
