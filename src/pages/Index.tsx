@@ -24,6 +24,7 @@ import {
   LogIn,
   Edit2,
   Check,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -326,7 +327,7 @@ const Index = () => {
                         {room.name ?? room.id}
                       </span>
                       <div className="flex gap-2">
-                        {/* Rename button */}
+                        {/* Rename UI */}
                         {editingRoomId === room.id ? (
                           <div className="flex items-center gap-1">
                             <input
