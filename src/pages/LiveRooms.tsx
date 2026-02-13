@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Monitor, Play, Square, ArrowRight } from "lucide-react";
+import { Monitor, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { LiveRoomSources } from "@/components/LiveRoomSources";
 
@@ -96,23 +96,12 @@ const LiveRooms = () => {
                         {room.id}
                       </span>
                       <div className="flex gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={(e) => { e.stopPropagation(); navigate(`/broadcaster?room=${room.id}`); }}
-                          className={`h-8 w-8 rounded-full transition-all ${
-                            room.is_live 
-                            ? 'bg-red-500 text-white hover:bg-red-600' 
-                            : 'bg-emerald-500/10 text-emerald-500 hover-bg-emerald-500 hover:text-white'
-                          }`}
-                        >
-                          {room.is_live ? <Square className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
-                        </Button>
+                        {/* Arrow button to go to receiver */}
                         <Button 
                           variant="ghost"
                           size="icon"
-                          onClick={(e) => { e.stopPropagation(); /* delete logic could go here */ }}
-                          className="h-8 w-8 text-slate-400 hover:text-red-400"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/broadcaster?room=${room.id}`); }}
+                          className="h-8 w-8 bg-emerald-500/10 text-emerald-500 hover-bg-emerald-500 hover:text-white rounded-full transition-all"
                         >
                           <ArrowRight className="w-5 h-5" />
                         </Button>
