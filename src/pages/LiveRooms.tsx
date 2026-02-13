@@ -130,10 +130,10 @@ const LiveRooms = () => {
                   </div>
                 </Card>
 
-                {/* Expanded source list – smooth transition */}
+                {/* Expanded source list – full width of the room card */}
                 {expandedRoom === room.id && (
                   <Card
-                    className="mt-2 bg-slate-800 border-slate-700 w-max transition-all duration-600 ease-in-out"
+                    className="mt-2 bg-slate-800 border-slate-700 w-full transition-all duration-600 ease-in-out"
                   >
                     <CardHeader className="p-2">
                       <CardTitle className="text-sm font-medium text-white">
