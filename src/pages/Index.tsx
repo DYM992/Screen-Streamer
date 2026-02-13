@@ -133,10 +133,7 @@ const Index = () => {
     }
     // Get the user's email to build a deterministic part of the ID
     const { data: userData } = await supabase.auth.getUser();
-    const rawEmail = userData?.user?.email ?? "";
-    // Replace characters that could break URLs or DB keys
-    const safeEmail = rawEmail.replace(/[@.]/g, "_");
-    const newId = `${safeEmail}-${crypto.randomUUID()}`;
+    const newId = `${user_id}-${crypto.randomUUID()}`;
     const { error } = await supabase
       .from("rooms")
       .insert({ id: newId, user_id: userId, name: "New Room" });
