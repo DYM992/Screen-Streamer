@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Radio, Tv, ShieldCheck, History, ArrowRight, Plus, Trash2, Monitor, Play, Square } from "lucide-react";
+import { Radio, Tv, ShieldCheck, History, ArrowRight, Plus, Trash2, Monitor, Play, Square, LogIn } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
@@ -72,7 +72,18 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative">
+      {/* Login button for guests */}
+      {!user && (
+        <Button
+          onClick={() => navigate("/login")}
+          className="absolute top-4 right-4 bg-indigo-600 hover:bg-indigo-700 text-white"
+        >
+          <LogIn className="w-4 h-4 mr-1" />
+          Login
+        </Button>
+      )}
+
       <div className="max-w-6xl w-full space-y-12 py-12">
         <div className="text-center space-y-4">
           <h1 className="text-7xl font-black tracking-tighter text-white">

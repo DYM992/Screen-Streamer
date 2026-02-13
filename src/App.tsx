@@ -32,14 +32,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Index />
-                </ProtectedRoute>
-              }
-            />
+            {/* Home page is now public */}
+            <Route path="/" element={<Index />} />
             <Route
               path="/broadcaster"
               element={
