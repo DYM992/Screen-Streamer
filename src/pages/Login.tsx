@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Google } from "lucide-react";
+import { LogIn } from "lucide-react";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -25,7 +25,7 @@ const Login = () => {
         onClick={handleGoogleSignIn}
         className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl text-lg"
       >
-        <Google className="w-5 h-5" />
+        <LogIn className="w-5 h-5" />
         Sign in with Google
       </Button>
     </div>
