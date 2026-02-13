@@ -6,6 +6,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { Radio, Tv, ShieldCheck, History, ArrowRight, Plus, Trash2, Monitor, Play, Square, LogIn } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { EmailAuthForm } from "@/components/EmailAuthForm";
 
 interface RoomData {
   id: string;
@@ -18,16 +19,14 @@ const Index = () => {
   const navigate = useNavigate();
   const [rooms, setRooms] = useState<RoomData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showEmailForm, setShowEmailForm] = useState(false);
 
   useEffect(() => {
     fetchRooms();
 
-    // Subscribe to room changes for real‑time live status
     const channel = supabase
       .channel('room-status')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => {
-        fetchRooms();
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, fetchRooms)
       .subscribe();
 
     return () => {
@@ -40,10 +39,7 @@ const Index = () => {
       .from('rooms')
       .select('*')
       .order('created_at', { ascending: false });
-
-    if (!error) {
-      setRooms(data || []);
-    }
+    if (!error) setRooms(data || []);
     setIsLoading(false);
   };
 
@@ -68,14 +64,11 @@ const Index = () => {
 
   const handleGoogleLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({ provider: "google" });
-    if (error) {
-      toast.error("Login failed");
-    }
+    if (error) toast.error("Login failed");
   };
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative">
-      {/* Login button that opens a dialog */}
       <Dialog>
         <DialogTrigger asChild>
           <Button
@@ -91,6 +84,7 @@ const Index = () => {
             <DialogTitle>Login</DialogTitle>
             <DialogDescription>Please sign in to continue.</DialogDescription>
           </DialogHeader>
+
           {/* Google login button */}
           <Button
             onClick={handleGoogleLogin}
@@ -99,6 +93,18 @@ const Index = () => {
             <LogIn className="w-5 h-5" />
             Sign in with Google
           </Button>
+
+          {/* Email login/signup toggle button */}
+          <Button
+            onClick={() => setShowEmailForm(!showEmailForm)}
+            className="w-full mt-2 flex items-center justify-center gap-2 bg-white text-black hover:bg-gray-100"
+          >
+            <LogIn className="w-5 h-5" />
+            {showEmailForm ? "Hide Email Form" : "Sign in / Sign up with Email"}
+          </Button>
+
+          {/* Email auth form */}
+          {showEmailForm && <EmailAuthForm />}
         </DialogContent>
       </Dialog>
 
@@ -160,10 +166,10 @@ const Index = () => {
               </div>
               <span className="text-xs font-bold text-slate-600">{rooms.length} Rooms Total</span>
             </div>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {rooms.map(room => (
-                <div 
+                <div
                   key={room.id}
                   onClick={() => navigate(`/broadcaster?room=${room.id}`)}
                   className="group bg-slate-900 border border-slate-800 rounded-[2rem] overflow-hidden hover:border-indigo-500/40 transition-all cursor-pointer flex flex-col"
@@ -177,32 +183,30 @@ const Index = () => {
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
-                    
                     {room.is_live && (
                       <div className="absolute top-4 left-4 flex items-center gap-2 bg-red-500 px-3 py-1 rounded-full shadow-lg shadow-red-500/20">
                         <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
                         <span className="text-[10px] font-black text-white uppercase tracking-widest">Live</span>
                       </div>
                     )}
-
                     <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
                       <span className="font-mono text-white font-bold text-sm bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
                         {room.id}
                       </span>
                       <div className="flex gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={(e) => toggleRoomLive(room, e)}
                           className={`h-8 w-8 rounded-full transition-all ${
-                            room.is_live 
-                            ? 'bg-red-500 text-white hover:bg-red-600' 
-                            : 'bg-emerald-500/10 text-emerald-500 hover-bg-emerald-500 hover:text-white'
+                            room.is_live
+                              ? "bg-red-500 text-white hover:bg-red-600"
+                              : "bg-emerald-500/10 text-emerald-500 hover-bg-emerald-500 hover:text-white"
                           }`}
                         >
                           {room.is_live ? <Square className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
                         </Button>
-                        <Button 
+                        <Button
                           variant="ghost"
                           size="icon"
                           onClick={(e) => deleteRoom(room.id, e)}
