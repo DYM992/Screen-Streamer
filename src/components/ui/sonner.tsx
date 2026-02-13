@@ -2,4 +2,4 @@
 
 import { Toaster as SonnerToaster } from "sonner";
 
-export const Sonner = () => <SonnerToaster />;
+export const Toaster = () => <SonnerToaster />;
