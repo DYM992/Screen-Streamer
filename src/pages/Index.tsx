@@ -22,6 +22,8 @@ import {
   Play,
   Square,
   LogIn,
+  Edit2,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,6 +43,8 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
+  const [editName, setEditName] = useState<string>("");
 
   // Track auth state
   useEffect(() => {
@@ -126,6 +130,38 @@ const Index = () => {
       toast.success("Room created");
       navigate(`/broadcaster?room=${newId}`);
     }
+  };
+
+  // Renaming helpers
+  const startRename = (room: RoomData) => {
+    setEditingRoomId(room.id);
+    setEditName(room.name ?? room.id);
+  };
+
+  const cancelRename = () => {
+    setEditingRoomId(null);
+    setEditName("");
+  };
+
+  const submitRename = async (roomId: string) => {
+    const trimmed = editName.trim();
+    if (!trimmed) {
+      toast.error("Room name cannot be empty");
+      return;
+    }
+    const { error } = await supabase
+      .from("rooms")
+      .update({ name: trimmed })
+      .eq("id", roomId);
+    if (error) {
+      console.error("Rename error", error);
+      toast.error("Failed to rename room");
+    } else {
+      toast.success("Room renamed");
+      // Refresh list
+      fetchRooms();
+    }
+    cancelRename();
   };
 
   return (
@@ -290,26 +326,72 @@ const Index = () => {
                         {room.name ?? room.id}
                       </span>
                       <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => toggleRoomLive(room, e)}
-                          className={`h-8 w-8 rounded-full transition-all ${
-                            room.is_live
-                              ? "bg-red-500 text-white hover:bg-red-600"
-                              : "bg-emerald-500/10 text-emerald-500 hover-bg-emerald-500 hover:text-white"
-                          }`}
-                        >
-                          {room.is_live ? <Square className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => deleteRoom(room.id, e)}
-                          className="h-8 w-8 text-slate-400 hover:text-red-400"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {/* Rename button */}
+                        {editingRoomId === room.id ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              className="bg-slate-800 text-white text-xs rounded px-2 py-1 focus:outline-none"
+                            />
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 text-emerald-500"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                submitRename(room.id);
+                              }}
+                            >
+                              <Check className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 text-red-500"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                cancelRename();
+                              }}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                startRename(room);
+                              }}
+                              className="h-6 w-6 text-slate-400 hover:text-white"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => toggleRoomLive(room, e)}
+                              className={`h-8 w-8 rounded-full transition-all ${
+                                room.is_live
+                                  ? "bg-red-500 text-white hover:bg-red-600"
+                                  : "bg-emerald-500/10 text-emerald-500 hover-bg-emerald-500 hover:text-white"
+                              }`}
+                            >
+                              {room.is_live ? <Square className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => deleteRoom(room.id, e)}
+                              className="h-8 w-8 text-slate-400 hover:text-red-400"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
