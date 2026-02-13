@@ -85,53 +85,70 @@ const Index = () => {
     if (error) toast.error("Login failed");
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast.success("Logged out");
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative">
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="absolute top-4 right-4 text-slate-400 hover:text-white"
-          >
-            Login
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Login</DialogTitle>
-            <DialogDescription>Please sign in to continue.</DialogDescription>
-          </DialogHeader>
+      {/* Conditional login/logout button */}
+      {userId ? (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="absolute top-4 right-4 text-slate-400 hover:text-white"
+          onClick={handleLogout}
+        >
+          Logout
+        </Button>
+      ) : (
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-4 right-4 text-slate-400 hover:text-white"
+            >
+              Login
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Login</DialogTitle>
+              <DialogDescription>Please sign in to continue.</DialogDescription>
+            </DialogHeader>
 
-          {/* Google login button */}
-          <Button
-            onClick={handleGoogleLogin}
-            className="w-full mt-4 flex items-center justify-center gap-2 bg-white text-black hover:bg-gray-100"
-          >
-            <LogIn className="w-5 h-5" />
-            Sign in with Google
-          </Button>
+            {/* Google login button */}
+            <Button
+              onClick={handleGoogleLogin}
+              className="w-full mt-4 flex items-center justify-center gap-2 bg-white text-black hover:bg-gray-100"
+            >
+              <LogIn className="w-5 h-5" />
+              Sign in with Google
+            </Button>
 
-          {/* Email login toggle */}
-          <Button
-            onClick={() => setShowEmailForm(!showEmailForm)}
-            className="w-full mt-2 flex items-center justify-center gap-2 bg-white text-black hover:bg-gray-100"
-          >
-            <LogIn className="w-5 h-5" />
-            {showEmailForm ? "Hide Email Form" : "Sign in with Email"}
-          </Button>
+            {/* Email login toggle */}
+            <Button
+              onClick={() => setShowEmailForm(!showEmailForm)}
+              className="w-full mt-2 flex items-center justify-center gap-2 bg-white text-black hover:bg-gray-100"
+            >
+              <LogIn className="w-5 h-5" />
+              {showEmailForm ? "Hide Email Form" : "Sign in with Email"}
+            </Button>
 
-          {/* Email auth form */}
-          {showEmailForm && <EmailAuthForm />}
+            {/* Email auth form */}
+            {showEmailForm && <EmailAuthForm />}
 
-          {/* Link to sign‑up page */}
-          <div className="mt-4 text-center">
-            <Link to="/signup" className="text-indigo-500 hover:underline">
-              Don’t have an account? Sign up
-            </Link>
-          </div>
-        </DialogContent>
-      </Dialog>
+            {/* Link to sign‑up page */}
+            <div className="mt-4 text-center">
+              <Link to="/signup" className="text-indigo-500 hover:underline">
+                Don’t have an account? Sign up
+              </Link>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       <div className="max-w-6xl w-full space-y-12 py-12">
         <div className="text-center space-y-4">
@@ -208,12 +225,15 @@ const Index = () => {
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
+                    
+                    {/* Live Badge */}
                     {room.is_live && (
                       <div className="absolute top-4 left-4 flex items-center gap-2 bg-red-500 px-3 py-1 rounded-full shadow-lg shadow-red-500/20">
                         <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
                         <span className="text-[10px] font-black text-white uppercase tracking-widest">Live</span>
                       </div>
                     )}
+
                     <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
                       <span className="font-mono text-white font-bold text-sm bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
                         {room.id}
