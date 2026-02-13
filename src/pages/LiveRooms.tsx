@@ -95,17 +95,7 @@ const LiveRooms = () => {
                       <span className="font-mono text-white font-bold text-sm bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
                         {room.id}
                       </span>
-                      <div className="flex gap-2">
-                        {/* Arrow button to go to receiver */}
-                        <Button 
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => { e.stopPropagation(); navigate(`/broadcaster?room=${room.id}`); }}
-                          className="h-8 w-8 bg-emerald-500/10 text-emerald-500 hover-bg-emerald-500 hover:text-white rounded-full transition-all"
-                        >
-                          <ArrowRight className="w-5 h-5" />
-                        </Button>
-                      </div>
+                      {/* Removed green arrow button that linked to broadcaster */}
                     </div>
                   </div>
                   <div className="p-5 flex items-center justify-between">
