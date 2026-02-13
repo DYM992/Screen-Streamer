@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Radio, Tv, ShieldCheck, History, ArrowRight, Plus, Trash2, Monitor, Play, Square } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,8 +21,8 @@ const Index = () => {
 
   useEffect(() => {
     fetchRooms();
-    
-    // Subscribe to room changes for real-time live status
+
+    // Subscribe to room changes for real‑time live status
     const channel = supabase
       .channel('room-status')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => {
@@ -66,7 +67,30 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative">
+      {/* Login button that opens a dialog */}
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute top-4 right-4 text-slate-400 hover:text-white"
+          >
+            Login
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Login</DialogTitle>
+            <DialogDescription>Please sign in to continue.</DialogDescription>
+          </DialogHeader>
+          {/* Placeholder for future login form */}
+          <div className="mt-4 text-center text-sm text-slate-500">
+            Login form will appear here.
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="max-w-6xl w-full space-y-12 py-12">
         <div className="text-center space-y-4">
           <h1 className="text-7xl font-black tracking-tighter text-white">
@@ -143,7 +167,6 @@ const Index = () => {
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
                     
-                    {/* Live Badge */}
                     {room.is_live && (
                       <div className="absolute top-4 left-4 flex items-center gap-2 bg-red-500 px-3 py-1 rounded-full shadow-lg shadow-red-500/20">
                         <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
@@ -163,7 +186,7 @@ const Index = () => {
                           className={`h-8 w-8 rounded-full transition-all ${
                             room.is_live 
                             ? 'bg-red-500 text-white hover:bg-red-600' 
-                            : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white'
+                            : 'bg-emerald-500/10 text-emerald-500 hover-bg-emerald-500 hover:text-white'
                           }`}
                         >
                           {room.is_live ? <Square className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
