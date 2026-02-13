@@ -1,51 +1,30 @@
-"use client";
-
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Radio, Tv, ShieldCheck, History, ArrowRight, Plus, Trash2, Monitor, Play, Square, LogIn } from "lucide-react";
+import { Radio, Tv, ShieldCheck, History, ArrowRight, Plus, Trash2, Monitor, Play, Square } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/components/AuthProvider";
-import { LoginDialog } from "@/components/LoginDialog";
 
 interface RoomData {
   id: string;
   thumbnail?: string;
   is_live: boolean;
   created_at: string;
-  user_id?: string;
 }
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [rooms, setRooms] = useState<RoomData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchRooms = async () => {
-    if (!user) return;
-    const { data, error } = await supabase
-      .from("rooms")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (!error) {
-      setRooms(data || []);
-    }
-    setIsLoading(false);
-  };
-
   useEffect(() => {
     fetchRooms();
-
-    if (!user) return;
-
+    
+    // Subscribe to room changes for real-time live status
     const channel = supabase
-      .channel("room-status")
-      .on("postgres_changes", { event: "*", schema: "public", table: "rooms", filter: `user_id=eq.${user.id}` }, () => {
+      .channel('room-status')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => {
         fetchRooms();
       })
       .subscribe();
@@ -53,11 +32,23 @@ const Index = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, []);
+
+  const fetchRooms = async () => {
+    const { data, error } = await supabase
+      .from('rooms')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!error) {
+      setRooms(data || []);
+    }
+    setIsLoading(false);
+  };
 
   const deleteRoom = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const { error } = await supabase.from("rooms").delete().eq("id", id);
+    const { error } = await supabase.from('rooms').delete().eq('id', id);
     if (!error) {
       setRooms(prev => prev.filter(r => r.id !== id));
       toast.success("Room deleted");
@@ -67,7 +58,7 @@ const Index = () => {
   const toggleRoomLive = async (room: RoomData, e: React.MouseEvent) => {
     e.stopPropagation();
     if (room.is_live) {
-      await supabase.from("rooms").update({ is_live: false }).eq("id", room.id);
+      await supabase.from('rooms').update({ is_live: false }).eq('id', room.id);
       toast.info(`Room ${room.id} stopped`);
     } else {
       navigate(`/broadcaster?room=${room.id}&autoStart=true`);
@@ -75,25 +66,20 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative">
-      {/* Login dialog trigger for unauthenticated users */}
-      {!user && <LoginDialog />}
-
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
       <div className="max-w-6xl w-full space-y-12 py-12">
         <div className="text-center space-y-4">
           <h1 className="text-7xl font-black tracking-tighter text-white">
             Screen <span className="text-indigo-500">Streamer</span>
           </h1>
           <p className="text-xl text-slate-400 max-w-2xl mx-auto font-medium">
-            Professional‑grade LAN streaming. Zero latency, multiple sources, and perfect OBS integration.
+            Professional-grade LAN streaming. Zero latency, multiple sources, 
+            and perfect OBS integration.
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
-          <Card
-            className="bg-slate-900 border-slate-800 hover:border-indigo-500/50 transition-all cursor-pointer group overflow-hidden relative"
-            onClick={() => navigate("/broadcaster")}
-          >
+          <Card className="bg-slate-900 border-slate-800 hover:border-indigo-500/50 transition-all cursor-pointer group overflow-hidden relative" onClick={() => navigate('/broadcaster')}>
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <CardHeader className="relative z-10">
               <div className="w-14 h-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
@@ -111,10 +97,7 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card
-            className="bg-slate-900 border-slate-800 hover:border-emerald-500/50 transition-all cursor-pointer group overflow-hidden relative"
-            onClick={() => navigate("/live")}
-          >
+          <Card className="bg-slate-900 border-slate-800 hover:border-emerald-500/50 transition-all cursor-pointer group overflow-hidden relative" onClick={() => navigate('/live')}>
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <CardHeader className="relative z-10">
               <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
@@ -142,10 +125,14 @@ const Index = () => {
               </div>
               <span className="text-xs font-bold text-slate-600">{rooms.length} Rooms Total</span>
             </div>
-
+            
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {rooms.map(room => (
-                <div key={room.id} onClick={() => navigate(`/broadcaster?room=${room.id}`)} className="group bg-slate-900 border border-slate-800 rounded-[2rem] overflow-hidden hover:border-indigo-500/40 transition-all cursor-pointer flex flex-col">
+                <div 
+                  key={room.id}
+                  onClick={() => navigate(`/broadcaster?room=${room.id}`)}
+                  className="group bg-slate-900 border border-slate-800 rounded-[2rem] overflow-hidden hover:border-indigo-500/40 transition-all cursor-pointer flex flex-col"
+                >
                   <div className="aspect-video bg-slate-950 relative overflow-hidden">
                     {room.thumbnail ? (
                       <img src={room.thumbnail} alt={room.id} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-500" />
@@ -155,7 +142,8 @@ const Index = () => {
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
-
+                    
+                    {/* Live Badge */}
                     {room.is_live && (
                       <div className="absolute top-4 left-4 flex items-center gap-2 bg-red-500 px-3 py-1 rounded-full shadow-lg shadow-red-500/20">
                         <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
@@ -168,25 +156,22 @@ const Index = () => {
                         {room.id}
                       </span>
                       <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={e => {
-                            e.stopPropagation();
-                            toggleRoomLive(room, e);
-                          }}
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={(e) => toggleRoomLive(room, e)}
                           className={`h-8 w-8 rounded-full transition-all ${
-                            room.is_live
-                              ? "bg-red-500 text-white hover:bg-red-600"
-                              : "bg-emerald-500/10 text-emerald-500 hover-bg-emerald-500 hover:text-white"
+                            room.is_live 
+                            ? 'bg-red-500 text-white hover:bg-red-600' 
+                            : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white'
                           }`}
                         >
                           {room.is_live ? <Square className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
                         </Button>
-                        <Button
+                        <Button 
                           variant="ghost"
                           size="icon"
-                          onClick={e => deleteRoom(room.id, e)}
+                          onClick={(e) => deleteRoom(room.id, e)}
                           className="h-8 w-8 text-slate-400 hover:text-red-400"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -197,7 +182,9 @@ const Index = () => {
                   <div className="p-5 flex items-center justify-between">
                     <div className="space-y-1">
                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Last Active</p>
-                      <p className="text-xs text-slate-300 font-bold">{new Date(room.created_at).toLocaleDateString()}</p>
+                      <p className="text-xs text-slate-300 font-bold">
+                        {new Date(room.created_at).toLocaleDateString()}
+                      </p>
                     </div>
                     <ArrowRight className="w-5 h-5 text-slate-700 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
                   </div>

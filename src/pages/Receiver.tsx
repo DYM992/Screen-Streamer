@@ -1,13 +1,11 @@
-"use client";
-
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Peer from 'peerjs';
 
 interface RemoteSource {
   id: string;
   label: string;
-  type: 'video' | 'audio' | string;
+  type: 'video' | 'audio' | string; // allow custom types like "video/webm"
   stream: MediaStream;
 }
 

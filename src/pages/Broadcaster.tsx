@@ -1,6 +1,4 @@
-"use client";
-
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStreamManager } from '@/hooks/useStreamManager';
 import SourceCard from '@/components/SourceCard';
@@ -252,7 +250,7 @@ const Broadcaster = () => {
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-10">
           <div className="xl:col-span-3 space-y-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-4 flex-1 mr-2">
+              <div className="flex items-center gap-4">
                 <h2 className="text-2xl font-bold flex items-center gap-3">
                   Live Sources
                   <span className="text-sm bg-slate-900 text-slate-400 px-3 py-1 rounded-full border border-slate-800">

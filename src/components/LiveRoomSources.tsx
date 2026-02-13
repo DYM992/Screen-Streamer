@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Monitor, Camera, Mic, RefreshCw } from "lucide-react";
