@@ -17,14 +17,30 @@ const LiveRooms = () => {
   const navigate = useNavigate();
   const [rooms, setRooms] = useState<LiveRoom[]>([]);
   const [expandedRoom, setExpandedRoom] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Track auth
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user.id ?? null);
+    });
+    return () => {
+      listener?.subscription.unsubscribe();
+    };
+  }, []);
 
   const fetchLiveRooms = async () => {
+    if (!userId) {
+      setRooms([]);
+      return;
+    }
     const { data, error } = await supabase
       .from("rooms")
       .select("*")
       .eq("is_live", true)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
-
     if (!error) setRooms(data || []);
   };
 
@@ -39,7 +55,7 @@ const LiveRooms = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [userId]);
 
   const toggleExpand = (roomId: string) => {
     setExpandedRoom(prev => (prev === roomId ? null : roomId));
@@ -95,7 +111,6 @@ const LiveRooms = () => {
                       <span className="font-mono text-white font-bold text-sm bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
                         {room.id}
                       </span>
-                      {/* Removed green arrow button that linked to broadcaster */}
                     </div>
                   </div>
                   <div className="p-5 flex items-center justify-between">
@@ -109,7 +124,7 @@ const LiveRooms = () => {
                   </div>
                 </Card>
 
-                {/* Expanded source list – use the new smooth slide‑down animation */}
+                {/* Expanded source list */}
                 {expandedRoom === room.id && (
                   <Card
                     className="mt-2 bg-slate-800 border-slate-700 w-full overflow-hidden animate-slide-down"

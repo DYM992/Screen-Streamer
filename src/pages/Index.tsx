@@ -20,32 +20,50 @@ const Index = () => {
   const [rooms, setRooms] = useState<RoomData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showEmailForm, setShowEmailForm] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Track auth state
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user.id ?? null);
+    });
+    // Initial session
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     fetchRooms();
-
     const channel = supabase
-      .channel('room-status')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, fetchRooms)
+      .channel("room-status")
+      .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, fetchRooms)
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [userId]);
 
   const fetchRooms = async () => {
+    if (!userId) {
+      setRooms([]);
+      setIsLoading(false);
+      return;
+    }
     const { data, error } = await supabase
-      .from('rooms')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .from("rooms")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
     if (!error) setRooms(data || []);
     setIsLoading(false);
   };
 
   const deleteRoom = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const { error } = await supabase.from('rooms').delete().eq('id', id);
+    const { error } = await supabase.from("rooms").delete().eq("id", id);
     if (!error) {
       setRooms(prev => prev.filter(r => r.id !== id));
       toast.success("Room deleted");
@@ -55,7 +73,7 @@ const Index = () => {
   const toggleRoomLive = async (room: RoomData, e: React.MouseEvent) => {
     e.stopPropagation();
     if (room.is_live) {
-      await supabase.from('rooms').update({ is_live: false }).eq('id', room.id);
+      await supabase.from("rooms").update({ is_live: false }).eq("id", room.id);
       toast.info(`Room ${room.id} stopped`);
     } else {
       navigate(`/broadcaster?room=${room.id}&autoStart=true`);
