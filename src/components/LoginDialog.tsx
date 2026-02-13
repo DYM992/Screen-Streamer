@@ -1,3 +1,5 @@
+"use client";
+
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Auth } from "@supabase/auth-ui-react";
