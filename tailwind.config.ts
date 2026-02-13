@@ -87,7 +87,8 @@ export default {
         },
       },
       animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
+        // Slower slide‑down animation for expanded lists
+        "accordion-down": "accordion-down 0.5s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },
     },
