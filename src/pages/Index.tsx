@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Radio, Tv, ShieldCheck, History, ArrowRight, Plus, Trash2, Monitor, Play, Square, LogIn } from "lucide-react";
@@ -19,14 +18,16 @@ const Index = () => {
   const navigate = useNavigate();
   const [rooms, setRooms] = useState<RoomData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [email, setEmail] = useState("");
 
   useEffect(() => {
     fetchRooms();
 
+    // Subscribe to room changes for real‑time live status
     const channel = supabase
-      .channel("room-status")
-      .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, fetchRooms)
+      .channel('room-status')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => {
+        fetchRooms();
+      })
       .subscribe();
 
     return () => {
@@ -35,14 +36,20 @@ const Index = () => {
   }, []);
 
   const fetchRooms = async () => {
-    const { data, error } = await supabase.from("rooms").select("*").order("created_at", { ascending: false });
-    if (!error) setRooms(data || []);
+    const { data, error } = await supabase
+      .from('rooms')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!error) {
+      setRooms(data || []);
+    }
     setIsLoading(false);
   };
 
   const deleteRoom = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const { error } = await supabase.from("rooms").delete().eq("id", id);
+    const { error } = await supabase.from('rooms').delete().eq('id', id);
     if (!error) {
       setRooms(prev => prev.filter(r => r.id !== id));
       toast.success("Room deleted");
@@ -52,29 +59,23 @@ const Index = () => {
   const toggleRoomLive = async (room: RoomData, e: React.MouseEvent) => {
     e.stopPropagation();
     if (room.is_live) {
-      await supabase.from("rooms").update({ is_live: false }).eq("id", room.id);
+      await supabase.from('rooms').update({ is_live: false }).eq('id', room.id);
       toast.info(`Room ${room.id} stopped`);
     } else {
       navigate(`/broadcaster?room=${room.id}&autoStart=true`);
     }
   };
 
-  const handleEmailLogin = async () => {
-    if (!email) {
-      toast.error("Please enter an email address");
-      return;
-    }
-    const { error } = await supabase.auth.signInWithOtp({ email });
+  const handleGoogleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({ provider: "google" });
     if (error) {
       toast.error("Login failed");
-    } else {
-      toast.success(`Magic link sent to ${email}`);
     }
   };
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative">
-      {/* Login dialog */}
+      {/* Login button that opens a dialog */}
       <Dialog>
         <DialogTrigger asChild>
           <Button
@@ -90,19 +91,14 @@ const Index = () => {
             <DialogTitle>Login</DialogTitle>
             <DialogDescription>Please sign in to continue.</DialogDescription>
           </DialogHeader>
-          {/* Email magic‑link form */}
-          <div className="flex items-center gap-2 mt-4">
-            <Input
-              placeholder="you@example.com"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="flex-1"
-            />
-            <Button onClick={handleEmailLogin} className="bg-white text-black hover:bg-gray-100">
-              <LogIn className="w-5 h-5 mr-1" />
-              Send Link
-            </Button>
-          </div>
+          {/* Google login button */}
+          <Button
+            onClick={handleGoogleLogin}
+            className="w-full mt-4 flex items-center justify-center gap-2 bg-white text-black hover:bg-gray-100"
+          >
+            <LogIn className="w-5 h-5" />
+            Sign in with Google
+          </Button>
         </DialogContent>
       </Dialog>
 
@@ -112,15 +108,13 @@ const Index = () => {
             Screen <span className="text-indigo-500">Streamer</span>
           </h1>
           <p className="text-xl text-slate-400 max-w-2xl mx-auto font-medium">
-            Professional‑grade LAN streaming. Zero latency, multiple sources, and perfect OBS integration.
+            Professional-grade LAN streaming. Zero latency, multiple sources, 
+            and perfect OBS integration.
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
-          <Card
-            className="bg-slate-900 border-slate-800 hover:border-indigo-500/50 transition-all cursor-pointer group overflow-hidden relative"
-            onClick={() => navigate("/broadcaster")}
-          >
+          <Card className="bg-slate-900 border-slate-800 hover:border-indigo-500/50 transition-all cursor-pointer group overflow-hidden relative" onClick={() => navigate('/broadcaster')}>
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <CardHeader className="relative z-10">
               <div className="w-14 h-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
@@ -138,10 +132,7 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card
-            className="bg-slate-900 border-slate-800 hover:border-emerald-500/50 transition-all cursor-pointer group overflow-hidden relative"
-            onClick={() => navigate("/live")}
-          >
+          <Card className="bg-slate-900 border-slate-800 hover:border-emerald-500/50 transition-all cursor-pointer group overflow-hidden relative" onClick={() => navigate('/live')}>
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <CardHeader className="relative z-10">
               <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
@@ -169,10 +160,10 @@ const Index = () => {
               </div>
               <span className="text-xs font-bold text-slate-600">{rooms.length} Rooms Total</span>
             </div>
-
+            
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {rooms.map(room => (
-                <div
+                <div 
                   key={room.id}
                   onClick={() => navigate(`/broadcaster?room=${room.id}`)}
                   className="group bg-slate-900 border border-slate-800 rounded-[2rem] overflow-hidden hover:border-indigo-500/40 transition-all cursor-pointer flex flex-col"
@@ -186,7 +177,7 @@ const Index = () => {
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
-
+                    
                     {room.is_live && (
                       <div className="absolute top-4 left-4 flex items-center gap-2 bg-red-500 px-3 py-1 rounded-full shadow-lg shadow-red-500/20">
                         <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
@@ -199,22 +190,22 @@ const Index = () => {
                         {room.id}
                       </span>
                       <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={e => toggleRoomLive(room, e)}
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={(e) => toggleRoomLive(room, e)}
                           className={`h-8 w-8 rounded-full transition-all ${
-                            room.is_live
-                              ? "bg-red-500 text-white hover:bg-red-600"
-                              : "bg-emerald-500/10 text-emerald-500 hover-bg-emerald-500 hover:text-white"
+                            room.is_live 
+                            ? 'bg-red-500 text-white hover:bg-red-600' 
+                            : 'bg-emerald-500/10 text-emerald-500 hover-bg-emerald-500 hover:text-white'
                           }`}
                         >
                           {room.is_live ? <Square className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
                         </Button>
-                        <Button
+                        <Button 
                           variant="ghost"
                           size="icon"
-                          onClick={e => deleteRoom(room.id, e)}
+                          onClick={(e) => deleteRoom(room.id, e)}
                           className="h-8 w-8 text-slate-400 hover:text-red-400"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -222,11 +213,12 @@ const Index = () => {
                       </div>
                     </div>
                   </div>
-
                   <div className="p-5 flex items-center justify-between">
                     <div className="space-y-1">
                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Last Active</p>
-                      <p className="text-xs text-slate-300 font-bold">{new Date(room.created_at).toLocaleDateString()}</p>
+                      <p className="text-xs text-slate-300 font-bold">
+                        {new Date(room.created_at).toLocaleDateString()}
+                      </p>
                     </div>
                     <ArrowRight className="w-5 h-5 text-slate-700 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
                   </div>
