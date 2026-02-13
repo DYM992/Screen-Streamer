@@ -74,7 +74,7 @@ const Receiver = () => {
             <video
               autoPlay
               playsInline
-              muted
+              muted={false}
               controls={false}
               ref={el => { if (el && el.srcObject !== source.stream) el.srcObject = source.stream; }}
               className="w-screen h-screen object-fill bg-black"

@@ -215,12 +215,15 @@ export const useStreamManager = (roomName: string) => {
     try {
       let stream: MediaStream;
 
-      // --------- NEW LOGIC FOR SCREEN SHARE ----------
       if (source.type === "video") {
-        // Screen share – use getDisplayMedia with FPS constraint
+        // Screen share – use getDisplayMedia with FPS constraint and high-fidelity audio
         stream = await navigator.mediaDevices.getDisplayMedia({
           video: { frameRate: fps },
-          audio: true,
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false
+          },
         });
       } else if (source.type === "camera") {
         // Camera – optionally use a specific device and FPS constraint
