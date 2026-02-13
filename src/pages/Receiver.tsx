@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface RemoteSource {
   id: string;
   label: string;
-  type: "video" | "audio" | string; // allow custom types like "video/webm"
+  type: "video" | "audio" | string;
   stream: MediaStream;
 }
 
@@ -33,36 +33,26 @@ const Receiver = () => {
   const targetSourceId = searchParams.get("sourceId");
 
   const [sources, setSources] = useState<RemoteSource[]>([]);
-  const [status, setStatus] = useState<"connecting" | "connected" | "error">(
-    "connecting",
-  );
+  const [status, setStatus] = useState<"connecting" | "connected" | "error">("connecting");
   const peerRef = useRef<Peer | null>(null);
 
-  // ---------- Live‑rooms list (no room param) ----------
+  // Live‑rooms list
   const [liveRooms, setLiveRooms] = useState<RoomData[]>([]);
   const [roomsLoading, setRoomsLoading] = useState(true);
 
   useEffect(() => {
-    if (room) return; // skip when a specific room is requested
-
+    if (room) return;
     const fetchLiveRooms = async () => {
-      const { data, error } = await supabase
-        .from("rooms")
-        .select("*")
-        .eq("is_live", true)
-        .order("created_at", { ascending: false });
-
+      const { data, error } = await supabase.from("rooms").select("*").eq("is_live", true).order("created_at", { ascending: false });
       if (!error) setLiveRooms(data as RoomData[]);
       setRoomsLoading(false);
     };
-
     fetchLiveRooms();
   }, [room]);
 
-  // ---------- Single‑room streaming ----------
+  // Single‑room streaming
   useEffect(() => {
     if (!room) return;
-
     const peer = new Peer();
     peerRef.current = peer;
 
@@ -82,9 +72,9 @@ const Receiver = () => {
           setSources((prev) => {
             const existing = prev.findIndex((s) => s.id === sourceId);
             if (existing !== -1) {
-              const updated = [...prev];
-              updated[existing] = { ...updated[existing], stream: remoteStream };
-              return updated;
+              const upd = [...prev];
+              upd[existing] = { ...upd[existing], stream: remoteStream };
+              return upd;
             }
             return [...prev, newSource];
           });
@@ -98,24 +88,17 @@ const Receiver = () => {
   }, [room]);
 
   const displayedSources = targetSourceId
-    ? sources.filter((s) => s.id === targetSourceId)
+    ? sources.filter((s) => s.label === targetSourceId)
     : sources;
 
-  // ---------- Render ----------
   if (!room) {
-    // Show broadcasting rooms grid
     return (
       <div className="min-h-screen bg-slate-950 text-slate-50 p-6">
-        <h2 className="text-2xl font-bold mb-4 text-center">
-          Live Rooms
-        </h2>
-
+        <h2 className="text-2xl font-bold mb-4 text-center">Live Rooms</h2>
         {roomsLoading ? (
           <p className="text-center">Loading…</p>
         ) : liveRooms.length === 0 ? (
-          <p className="text-center text-slate-400">
-            No rooms are currently live.
-          </p>
+          <p className="text-center text-slate-400">No rooms are currently live.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {liveRooms.map((roomData) => (
@@ -151,17 +134,13 @@ const Receiver = () => {
     );
   }
 
-  // Single‑room view
   if (status === "error") return null;
   if (status === "connecting") return null;
 
   return (
     <div className="fixed inset-0 bg-transparent flex items-center justify-center">
       {displayedSources.map((source) => (
-        <div
-          key={source.id}
-          className={`relative ${source.type === "audio" ? "hidden" : ""} w-full h-full`}
-        >
+        <div key={source.id} className={`relative ${source.type === "audio" ? "hidden" : ""} w-full h-full`}>
           {source.type === "audio" ? (
             <audio
               autoPlay
