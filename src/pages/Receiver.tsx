@@ -26,7 +26,7 @@ interface RoomData {
 }
 
 const Receiver = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const room = searchParams.get("room");
@@ -34,6 +34,7 @@ const Receiver = () => {
 
   const [sources, setSources] = useState<RemoteSource[]>([]);
   const [status, setStatus] = useState<"connecting" | "connected" | "error">("connecting");
+  const [selectedSourceId, setSelectedSourceId] = useState<string | undefined>(targetSourceId || undefined);
   const peerRef = useRef<Peer | null>(null);
 
   // Live‑rooms list
@@ -41,9 +42,18 @@ const Receiver = () => {
   const [roomsLoading, setRoomsLoading] = useState(true);
 
   useEffect(() => {
+    // Sync selected source when URL changes
+    setSelectedSourceId(targetSourceId || undefined);
+  }, [targetSourceId]);
+
+  useEffect(() => {
     if (room) return;
     const fetchLiveRooms = async () => {
-      const { data, error } = await supabase.from("rooms").select("*").eq("is_live", true).order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("rooms")
+        .select("*")
+        .eq("is_live", true)
+        .order("created_at", { ascending: false });
       if (!error) setLiveRooms(data as RoomData[]);
       setRoomsLoading(false);
     };
@@ -80,6 +90,7 @@ const Receiver = () => {
           });
         });
       });
+      // Trigger a dummy call to receive streams from broadcaster
       peer.call(room, new MediaStream());
     });
 
@@ -87,8 +98,8 @@ const Receiver = () => {
     return () => peer.destroy();
   }, [room]);
 
-  const displayedSources = targetSourceId
-    ? sources.filter((s) => s.label === targetSourceId)
+  const displayedSources = selectedSourceId
+    ? sources.filter((s) => s.label === selectedSourceId)
     : sources;
 
   if (!room) {
@@ -138,7 +149,27 @@ const Receiver = () => {
   if (status === "connecting") return null;
 
   return (
-    <div className="fixed inset-0 bg-transparent flex items-center justify-center">
+    <div className="fixed inset-0 bg-transparent flex flex-col items-center justify-center">
+      {/* Source selector */}
+      {sources.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-2 justify-center">
+          {sources.map((src) => (
+            <Button
+              key={src.id}
+              variant={selectedSourceId === src.label ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                setSelectedSourceId(src.label);
+                setSearchParams({ room, sourceId: src.label });
+              }}
+            >
+              {src.label}
+            </Button>
+          ))}
+        </div>
+      )}
+
+      {/* Render selected sources */}
       {displayedSources.map((source) => (
         <div key={source.id} className={`relative ${source.type === "audio" ? "hidden" : ""} w-full h-full`}>
           {source.type === "audio" ? (
