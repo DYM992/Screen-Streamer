@@ -240,6 +240,9 @@ export const useStreamManager = (roomName: string) => {
         stream = await navigator.mediaDevices.getUserMedia(constraints);
       }
 
+      // Persist enabled flag to DB immediately
+      await supabase.from('sources').update({ is_enabled: true }).eq('id', source.id);
+
       setSources(prev => prev.map(s => s.id === id ? { ...s, stream, isActive: true, isEnabled: true } : s));
       return true;
     } catch (err) {
@@ -249,7 +252,10 @@ export const useStreamManager = (roomName: string) => {
     }
   }, [fps]);
 
-  const deactivateSource = useCallback((id: string) => {
+  const deactivateSource = useCallback(async (id: string) => {
+    // Persist disabled flag to DB immediately
+    await supabase.from('sources').update({ is_enabled: false }).eq('id', id);
+
     setSources(prev => prev.map(s => {
       if (s.id === id) {
         s.stream?.getTracks().forEach(t => t.stop());
