@@ -5,24 +5,29 @@ import { Button } from "@/components/ui/button";
 import { Monitor, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { LiveRoomSources } from "@/components/LiveRoomSources";
+import { useAuth } from "@/components/AuthProvider";
 
 interface LiveRoom {
   id: string;
   thumbnail?: string;
   is_live: boolean;
   created_at: string;
+  user_id?: string;
 }
 
 const LiveRooms = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [rooms, setRooms] = useState<LiveRoom[]>([]);
   const [expandedRoom, setExpandedRoom] = useState<string | null>(null);
 
   const fetchLiveRooms = async () => {
+    if (!user) return;
     const { data, error } = await supabase
       .from("rooms")
       .select("*")
       .eq("is_live", true)
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
     if (!error) setRooms(data || []);
@@ -31,15 +36,21 @@ const LiveRooms = () => {
   useEffect(() => {
     fetchLiveRooms();
 
+    if (!user) return;
+
     const channel = supabase
       .channel("live-rooms")
-      .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, fetchLiveRooms)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "rooms", filter: `is_live=eq.true,user_id=eq.${user.id}` },
+        fetchLiveRooms,
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user]);
 
   const toggleExpand = (roomId: string) => {
     setExpandedRoom(prev => (prev === roomId ? null : roomId));
@@ -49,18 +60,14 @@ const LiveRooms = () => {
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
       <div className="max-w-6xl w-full space-y-8 py-12">
         <div className="text-center space-y-4">
-          <h1 className="text-5xl font-black tracking-tighter text-white">
-            Live Rooms
-          </h1>
+          <h1 className="text-5xl font-black tracking-tighter text-white">Live Rooms</h1>
           <p className="text-xl text-slate-400 max-w-2xl mx-auto font-medium">
             Rooms that are currently broadcasting. Click a room to see its sources.
           </p>
         </div>
 
         {rooms.length === 0 ? (
-          <div className="text-center text-slate-400 py-12">
-            No live rooms at the moment.
-          </div>
+          <div className="text-center text-slate-400 py-12">No live rooms at the moment.</div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {rooms.map(room => (
@@ -71,18 +78,14 @@ const LiveRooms = () => {
                 >
                   <div className="aspect-video bg-slate-950 relative overflow-hidden">
                     {room.thumbnail ? (
-                      <img
-                        src={room.thumbnail}
-                        alt={room.id}
-                        className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-500"
-                      />
+                      <img src={room.thumbnail} alt={room.id} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-500" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Monitor className="w-12 h-12 text-slate-800" />
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
-                    
+
                     {/* Live Badge */}
                     {room.is_live && (
                       <div className="absolute top-4 left-4 flex items-center gap-2 bg-red-500 px-3 py-1 rounded-full shadow-lg shadow-red-500/20">
@@ -95,29 +98,21 @@ const LiveRooms = () => {
                       <span className="font-mono text-white font-bold text-sm bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
                         {room.id}
                       </span>
-                      {/* Removed green arrow button that linked to broadcaster */}
                     </div>
                   </div>
                   <div className="p-5 flex items-center justify-between">
                     <div className="space-y-1">
                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Last Active</p>
-                      <p className="text-xs text-slate-300 font-bold">
-                        {new Date(room.created_at).toLocaleDateString()}
-                      </p>
+                      <p className="text-xs text-slate-300 font-bold">{new Date(room.created_at).toLocaleDateString()}</p>
                     </div>
                     <ArrowRight className="w-5 h-5 text-slate-700 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
                   </div>
                 </Card>
 
-                {/* Expanded source list – use the new smooth slide‑down animation */}
                 {expandedRoom === room.id && (
-                  <Card
-                    className="mt-2 bg-slate-800 border-slate-700 w-full overflow-hidden animate-slide-down"
-                  >
+                  <Card className="mt-2 bg-slate-800 border-slate-700 w-full overflow-hidden animate-slide-down">
                     <CardHeader className="p-2">
-                      <CardTitle className="text-sm font-medium text-white">
-                        Sources for {room.id}
-                      </CardTitle>
+                      <CardTitle className="text-sm font-medium text-white">Sources for {room.id}</CardTitle>
                     </CardHeader>
                     <CardContent className="p-2">
                       <LiveRoomSources roomId={room.id} />
