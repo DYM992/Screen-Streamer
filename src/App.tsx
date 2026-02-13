@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Broadcaster from "./pages/Broadcaster";
 import Receiver from "./pages/Receiver";
+import SourceList from "./pages/SourceList";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,6 +21,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/broadcaster" element={<Broadcaster />} />
           <Route path="/receiver" element={<Receiver />} />
+          <Route path="/source-list" element={<SourceList />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
