@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -98,6 +100,7 @@ const LiveRooms = () => {
                       <span className="font-mono text-white font-bold text-sm bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
                         {room.id}
                       </span>
+                      <ArrowRight className="w-5 h-5 text-slate-700 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
                     </div>
                   </div>
                   <div className="p-5 flex items-center justify-between">
@@ -105,7 +108,6 @@ const LiveRooms = () => {
                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Last Active</p>
                       <p className="text-xs text-slate-300 font-bold">{new Date(room.created_at).toLocaleDateString()}</p>
                     </div>
-                    <ArrowRight className="w-5 h-5 text-slate-700 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
                   </div>
                 </Card>
 
