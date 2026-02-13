@@ -1,13 +1,20 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Monitor, ArrowRight } from "lucide-react";
+import { Monitor, ArrowRight, ShieldCheck, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { LiveRoomSources } from "@/components/LiveRoomSources";
 
 interface LiveRoom {
   id: string;
+  name?: string;
   thumbnail?: string;
   is_live: boolean;
   created_at: string;
@@ -37,7 +44,7 @@ const LiveRooms = () => {
     }
     const { data, error } = await supabase
       .from("rooms")
-      .select("*")
+      .select("id, name, thumbnail, is_live, created_at")
       .eq("is_live", true)
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
@@ -79,7 +86,7 @@ const LiveRooms = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {rooms.map(room => (
+            {rooms.map((room) => (
               <div key={room.id}>
                 <Card
                   className="bg-slate-900 border border-slate-800 rounded-[2rem] overflow-hidden hover:border-indigo-500/40 transition-all cursor-pointer flex flex-col"
@@ -109,8 +116,10 @@ const LiveRooms = () => {
 
                     <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
                       <span className="font-mono text-white font-bold text-sm bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
-                        {room.id}
+                        {/* Show friendly name if present, otherwise UUID */}
+                        {room.name ?? room.id}
                       </span>
+                      <ArrowRight className="w-5 h-5 text-slate-700 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
                     </div>
                   </div>
                   <div className="p-5 flex items-center justify-between">
@@ -120,7 +129,6 @@ const LiveRooms = () => {
                         {new Date(room.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                    <ArrowRight className="w-5 h-5 text-slate-700 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
                   </div>
                 </Card>
 
@@ -131,7 +139,7 @@ const LiveRooms = () => {
                   >
                     <CardHeader className="p-2">
                       <CardTitle className="text-sm font-medium text-white">
-                        Sources for {room.id}
+                        Sources for {room.name ?? room.id}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-2">

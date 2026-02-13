@@ -1,31 +1,68 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useStreamManager } from '@/hooks/useStreamManager';
-import SourceCard from '@/components/SourceCard';
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useStreamManager } from "@/hooks/useStreamManager";
+import SourceCard from "@/components/SourceCard";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Monitor, Mic, Camera, LayoutGrid, Info, ArrowLeft, Play, Square, RefreshCw, Edit2, Check } from "lucide-react";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import {
+  Monitor,
+  Mic,
+  Camera,
+  LayoutGrid,
+  Info,
+  ArrowLeft,
+  Play,
+  Square,
+  RefreshCw,
+  Edit2,
+  Check,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const Broadcaster = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const initialRoom = searchParams.get('room') || `room-${Math.floor(Math.random() * 1000)}`;
-  const [roomName, setRoomName] = useState(initialRoom);
-  const [editingRoomId, setEditingRoomId] = useState(initialRoom);
-  const [isEditingRoomId, setIsEditingRoomId] = useState(false);
-
+  // The room ID is a UUID from the URL (immutable)
+  const roomId = searchParams.get("room");
+  // Editable display name for the room
+  const [roomName, setRoomName] = useState("");
+  const [editingName, setEditingName] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Focus and select all text when rename mode is activated
+  // Focus input when editing starts
   useEffect(() => {
-    if (isEditingRoomId && inputRef.current) {
+    if (editingName && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.select();
     }
-  }, [isEditingRoomId]);
+  }, [editingName]);
+
+  // Load room display name (or fallback to ID)
+  useEffect(() => {
+    if (!roomId) return;
+    const fetchName = async () => {
+      const { data, error } = await supabase
+        .from("rooms")
+        .select("name")
+        .eq("id", roomId)
+        .single();
+      if (!error && data) {
+        setRoomName(data.name ?? roomId);
+      } else {
+        // If no name column or error, just show the UUID
+        setRoomName(roomId);
+      }
+    };
+    fetchName();
+  }, [roomId]);
 
   const {
     sources,
@@ -35,138 +72,63 @@ const Broadcaster = () => {
     addSource,
     activateSource,
     deactivateSource,
-    updateSourceLabel,
     removeSource,
+    updateSourceLabel,
+    updateSourceDeviceId,
     reconnectAll,
     saveToDatabase,
-    updateSourceDeviceId,
     fps,
     setFps,
-  } = useStreamManager(roomName);
+  } = useStreamManager(roomId ?? "");
 
-  const commitRoomIdChange = async () => {
-    if (editingRoomId === roomName) {
-      setIsEditingRoomId(false);
-      return;
-    }
-
-    const oldId = roomName;
-    const newId = editingRoomId.trim();
-
-    if (!newId) {
-      setEditingRoomId(oldId);
-      setIsEditingRoomId(false);
-      return;
-    }
-
-    // 1️⃣ Check if the target room already exists (use maybeSingle to avoid 406)
-    const { data: existingRoom, error: existenceError } = await supabase
-      .from('rooms')
-      .select('id')
-      .eq('id', newId)
-      .maybeSingle();
-
-    if (existenceError) {
-      console.error('Error checking room existence:', existenceError);
-      return;
-    }
-
-    const roomExists = !!existingRoom;
-
-    if (!roomExists) {
-      // Create the new room row first (no duplicate‑key risk)
-      const { error: createRoomError } = await supabase
-        .from('rooms')
-        .insert({ id: newId })
+  const commitNameChange = async () => {
+    if (!roomId) return;
+    const newName = roomName.trim();
+    if (!newName) {
+      // Revert to previous name if empty
+      const { data, error } = await supabase
+        .from("rooms")
+        .select("name")
+        .eq("id", roomId)
         .single();
-
-      if (createRoomError) {
-        console.error('Failed to create new room during rename:', createRoomError);
-        return;
-      }
-    }
-
-    // 2️⃣ Update all sources to point to the new room id
-    const { error: sourceError } = await supabase
-      .from('sources')
-      .update({ room_id: newId })
-      .eq('room_id', oldId);
-
-    if (sourceError) {
-      console.error('Failed to update sources during rename:', sourceError);
-      // Clean up newly created room if we just created it
-      if (!roomExists) {
-        await supabase.from('rooms').delete().eq('id', newId);
-      }
+      setRoomName(data?.name ?? roomId);
+      setEditingName(false);
       return;
     }
 
-    // 3️⃣ Delete the old room row (if it still exists)
-    const { error: deleteRoomError } = await supabase
-      .from('rooms')
-      .delete()
-      .eq('id', oldId);
-
-    if (deleteRoomError) {
-      console.error('Failed to delete old room after rename:', deleteRoomError);
-      // Not fatal – the new room exists and sources now point to it
-    }
-
-    // 4️⃣ Update local state & URL
-    setRoomName(newId);
-    setSearchParams({ room: newId }, { replace: true });
-    setIsEditingRoomId(false);
-  };
-
-  const handleRoomIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEditingRoomId(e.target.value);
-  };
-
-  const handleRoomIdBlur = async () => {
-    if (isEditingRoomId) {
-      await commitRoomIdChange();
-    }
-  };
-
-  const handleRoomIdKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.target.blur();
-    }
-  };
-
-  // Button click handler: start editing or commit rename
-  const handleEditButtonClick = async () => {
-    if (isEditingRoomId) {
-      await commitRoomIdChange();
+    const { error } = await supabase
+      .from("rooms")
+      .update({ name: newName })
+      .eq("id", roomId);
+    if (error) {
+      console.error("Failed to rename room:", error);
     } else {
-      setIsEditingRoomId(true);
+      setEditingName(false);
     }
   };
 
-  useEffect(() => {
-    if (!searchParams.get('room')) {
-      setSearchParams({ room: roomName }, { replace: true });
+  const handleNameBlur = async () => {
+    if (editingName) {
+      await commitNameChange();
     }
+  };
 
-    if (searchParams.get('autoStart') === "true" && !isBroadcasting) {
-      toggleBroadcasting();
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("autoStart");
-      setSearchParams(newParams, { replace: true });
+  const handleNameKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      (target.current!.blur();
     }
-  }, [roomName, isBroadcasting]);
+  };
 
   const handleBack = async () => {
     await saveToDatabase();
     navigate("/");
   };
 
-  const hasInactiveSources = sources.some(s => !s.isActive);
+  const hasInactiveSources = sources.some((s) => !s.isActive);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 selection:bg-indigo-500/30">
       <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-10">
-
         <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
           <div className="space-y-4">
             <Button
@@ -181,36 +143,64 @@ const Broadcaster = () => {
               <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
                 <LayoutGrid className="text-white w-6 h-6" />
               </div>
-              <h1 className="text-4xl font-black tracking-tight">Broadcaster<span className="text-indigo-500">.</span></h1>
+              {/* Room name / edit */}
+              <div className="flex items-center gap-2">
+                {editingName ? (
+                  <div className="flex gap-1 items-center">
+                    <input
+                      ref={inputRef}
+                      value={roomName}
+                      onChange={(e) => setRoomName(e.target.value)}
+                      onBlur={handleNameBlur}
+                      onKeyDown={handleNameKeyDown}
+                      className="bg-transparent border-b border-white text-lg text-white focus:outline-none"
+                    />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 text-emerald-500"
+                      onClick={commitNameChange}
+                    >
+                      <Check className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <h1 className="text-4xl font-black tracking-tight text-white">
+                      {roomName}
+                    </h1>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 text-slate-400 hover:text-white"
+                      onClick={() => setEditingName(true)}
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
             <div className="bg-slate-900/50 border border-slate-800 p-1.5 rounded-2xl flex items-center gap-4 pr-4">
               <div className="bg-slate-950 px-4 py-2 rounded-xl border border-slate-800 flex items-center gap-2">
-                <Label className="text-[10px] text-slate-500 uppercase font-black block mb-1">Room ID</Label>
+                <Label className="text-[10px] text-slate-500 uppercase font-black block mb-1">
+                  Room ID
+                </Label>
                 <input
-                  ref={inputRef}
-                  value={editingRoomId}
-                  onChange={handleRoomIdChange}
-                  onBlur={handleRoomIdBlur}
-                  onKeyDown={handleRoomIdKeyDown}
-                  disabled={!isEditingRoomId || isBroadcasting}
-                  className="bg-transparent border-none focus:ring-0 text-sm font-mono w-32 p-0 disabled:opacity-50"
+                  value={roomId}
+                  disabled
+                  className="bg-transparent border-none focus:ring-0 text-sm font-mono w-32 p-0 opacity-50"
                 />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleEditButtonClick}
-                  disabled={isBroadcasting}
-                  className="h-8 w-8 text-indigo-400 hover:text-white"
-                  title={isEditingRoomId ? "Save Room ID" : "Rename Room"}
-                >
-                  {isEditingRoomId ? <Check className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
-                </Button>
               </div>
               <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${isBroadcasting ? 'bg-emerald-500 animate-pulse' : 'bg-slate-700'}`} />
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    isBroadcasting ? "bg-emerald-500 animate-pulse" : "bg-slate-700"
+                  }`}
+                />
                 <span className="text-xs font-bold text-slate-400">{connections} Receivers</span>
               </div>
             </div>
@@ -234,14 +224,18 @@ const Broadcaster = () => {
               onClick={toggleBroadcasting}
               className={`h-14 px-8 rounded-2xl font-black text-lg transition-all ${
                 isBroadcasting
-                  ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/20'
-                  : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                  ? "bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/20"
+                  : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
               }`}
             >
               {isBroadcasting ? (
-                <><Square className="w-5 h-5 mr-2 fill-current" /> Stop Broadcast</>
+                <>
+                  <Square className="w-5 h-5 mr-2 fill-current" /> Stop Broadcast
+                </>
               ) : (
-                <><Play className="w-5 h-5 mr-2 fill-current" /> Start Broadcast</>
+                <>
+                  <Play className="w-5 h-5 mr-2 fill-current" /> Start Broadcast
+                </>
               )}
             </Button>
           </div>
@@ -269,13 +263,22 @@ const Broadcaster = () => {
                 )}
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button onClick={() => addSource('video')} className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-bold rounded-xl h-11">
+                <Button
+                  onClick={() => addSource("video")}
+                  className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-bold rounded-xl h-11"
+                >
                   <Monitor className="w-4 h-4 mr-2" /> Add Screen
                 </Button>
-                <Button onClick={() => addSource('camera')} className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-bold rounded-xl h-11">
+                <Button
+                  onClick={() => addSource("camera")}
+                  className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-bold rounded-xl h-11"
+                >
                   <Camera className="w-4 h-4 mr-2" /> Add Camera
                 </Button>
-                <Button onClick={() => addSource('audio')} className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-bold rounded-xl h-11">
+                <Button
+                  onClick={() => addSource("audio")}
+                  className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-bold rounded-xl h-11"
+                >
                   <Mic className="w-4 h-4 mr-2" /> Add Mic
                 </Button>
               </div>
@@ -284,15 +287,17 @@ const Broadcaster = () => {
             {sources.length === 0 ? (
               <div className="aspect-[21/9] border-2 border-dashed border-slate-800 rounded-[2rem] flex flex-col items-center justify-center text-slate-500 gap-6 bg-slate-900/10">
                 <p className="text-xl font-bold text-slate-300">No sources added</p>
-                <p className="text-sm text-slate-500">Add your first source to begin configuring your room.</p>
+                <p className="text-sm text-slate-500">
+                  Add your first source to begin configuring your room.
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {sources.map(source => (
+                {sources.map((source) => (
                   <SourceCard
                     key={source.id}
                     source={source}
-                    roomName={roomName}
+                    roomName={roomId}
                     onRemove={removeSource}
                     onRename={updateSourceLabel}
                     onActivate={activateSource}
@@ -312,7 +317,9 @@ const Broadcaster = () => {
               </div>
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <p className="text-xs font-black text-indigo-500/50 uppercase tracking-widest">Visibility</p>
+                  <p className="text-xs font-black text-indigo-500/50 uppercase tracking-widest">
+                    Visibility
+                  </p>
                   <p className="text-sm text-slate-400 leading-relaxed">
                     {isBroadcasting
                       ? "Your room is currently LIVE. Receivers can connect using your Room ID."
@@ -320,7 +327,9 @@ const Broadcaster = () => {
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-xs font-black text-indigo-500/50 uppercase tracking-widest">Persistence</p>
+                  <p className="text-xs font-black text-indigo-500/50 uppercase tracking-widest">
+                    Persistence
+                  </p>
                   <p className="text-sm text-slate-400 leading-relaxed">
                     Source labels and types are saved. Use the eye icon to enable/disable hardware access.
                   </p>

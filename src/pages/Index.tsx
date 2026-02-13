@@ -2,14 +2,34 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Radio, Tv, ShieldCheck, History, ArrowRight, Plus, Trash2, Monitor, Play, Square, LogIn } from "lucide-react";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Radio,
+  Tv,
+  ShieldCheck,
+  History,
+  ArrowRight,
+  Plus,
+  Trash2,
+  Monitor,
+  Play,
+  Square,
+  LogIn,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { EmailAuthForm } from "@/components/EmailAuthForm";
 
 interface RoomData {
   id: string;
+  name?: string;
   thumbnail?: string;
   is_live: boolean;
   created_at: string;
@@ -54,7 +74,7 @@ const Index = () => {
     }
     const { data, error } = await supabase
       .from("rooms")
-      .select("*")
+      .select("id, name, thumbnail, is_live, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (!error) setRooms(data || []);
@@ -76,7 +96,7 @@ const Index = () => {
       await supabase.from("rooms").update({ is_live: false }).eq("id", room.id);
       toast.info(`Room ${room.id} stopped`);
     } else {
-      navigate(`/broadcaster?room=${room.id}&autoStart=true`);
+      navigate(`/broadcaster?room=${room.id}`);
     }
   };
 
@@ -156,13 +176,16 @@ const Index = () => {
             Screen <span className="text-indigo-500">Streamer</span>
           </h1>
           <p className="text-xl text-slate-400 max-w-2xl mx-auto font-medium">
-            Professional-grade LAN streaming. Zero latency, multiple sources, 
+            Professional-grade LAN streaming. Zero latency, multiple sources,
             and perfect OBS integration.
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
-          <Card className="bg-slate-900 border-slate-800 hover:border-indigo-500/50 transition-all cursor-pointer group overflow-hidden relative" onClick={() => navigate('/broadcaster')}>
+          <Card
+            className="bg-slate-900 border-slate-800 hover:border-indigo-500/50 transition-all cursor-pointer group overflow-hidden relative"
+            onClick={() => navigate("/broadcaster")}
+          >
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <CardHeader className="relative z-10">
               <div className="w-14 h-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
@@ -180,7 +203,10 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-800 hover:border-emerald-500/50 transition-all cursor-pointer group overflow-hidden relative" onClick={() => navigate('/live')}>
+          <Card
+            className="bg-slate-900 border-slate-800 hover:border-emerald-500/50 transition-all cursor-pointer group overflow-hidden relative"
+            onClick={() => navigate("/live")}
+          >
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <CardHeader className="relative z-10">
               <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
@@ -210,7 +236,7 @@ const Index = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {rooms.map(room => (
+              {rooms.map((room) => (
                 <div
                   key={room.id}
                   onClick={() => navigate(`/broadcaster?room=${room.id}`)}
@@ -236,7 +262,8 @@ const Index = () => {
 
                     <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
                       <span className="font-mono text-white font-bold text-sm bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
-                        {room.id}
+                        {/* Show friendly name if present, otherwise UUID */}
+                        {room.name ?? room.id}
                       </span>
                       <div className="flex gap-2">
                         <Button
