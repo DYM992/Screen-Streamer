@@ -6,6 +6,7 @@ import { Radio, Tv, ShieldCheck, History, ArrowRight, Plus, Trash2, Monitor, Pla
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
+import { LoginDialog } from "@/components/LoginDialog";
 
 interface RoomData {
   id: string;
@@ -73,16 +74,8 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative">
-      {/* Login button for guests */}
-      {!user && (
-        <Button
-          onClick={() => navigate("/login")}
-          className="absolute top-4 right-4 bg-indigo-600 hover:bg-indigo-700 text-white"
-        >
-          <LogIn className="w-4 h-4 mr-1" />
-          Login
-        </Button>
-      )}
+      {/* Login dialog trigger for unauthenticated users */}
+      {!user && <LoginDialog />}
 
       <div className="max-w-6xl w-full space-y-12 py-12">
         <div className="text-center space-y-4">
@@ -161,7 +154,6 @@ const Index = () => {
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
 
-                    {/* Live Badge */}
                     {room.is_live && (
                       <div className="absolute top-4 left-4 flex items-center gap-2 bg-red-500 px-3 py-1 rounded-full shadow-lg shadow-red-500/20">
                         <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
@@ -184,7 +176,7 @@ const Index = () => {
                           className={`h-8 w-8 rounded-full transition-all ${
                             room.is_live
                               ? "bg-red-500 text-white hover:bg-red-600"
-                              : "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white"
+                              : "bg-emerald-500/10 text-emerald-500 hover-bg-emerald-500 hover:text-white"
                           }`}
                         >
                           {room.is_live ? <Square className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
