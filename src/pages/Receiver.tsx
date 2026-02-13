@@ -33,7 +33,9 @@ const Receiver = () => {
   const targetSourceId = searchParams.get("sourceId");
 
   const [sources, setSources] = useState<RemoteSource[]>([]);
-  const [status, setStatus] = useState<"connecting" | "connected" | "error">("connecting");
+  const [status, setStatus] = useState<"connecting" | "connected" | "error">(
+    "connecting",
+  );
   const peerRef = useRef<Peer | null>(null);
 
   // Live‑rooms list
@@ -43,7 +45,11 @@ const Receiver = () => {
   useEffect(() => {
     if (room) return;
     const fetchLiveRooms = async () => {
-      const { data, error } = await supabase.from("rooms").select("*").eq("is_live", true).order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("rooms")
+        .select("*")
+        .eq("is_live", true)
+        .order("created_at", { ascending: false });
       if (!error) setLiveRooms(data as RoomData[]);
       setRoomsLoading(false);
     };
@@ -87,8 +93,11 @@ const Receiver = () => {
     return () => peer.destroy();
   }, [room]);
 
+  // Filter by label (human‑readable name) or fall back to UUID if needed
   const displayedSources = targetSourceId
-    ? sources.filter((s) => s.label === targetSourceId)
+    ? sources.filter(
+        (s) => s.label === targetSourceId || s.id === targetSourceId,
+      )
     : sources;
 
   if (!room) {
@@ -140,7 +149,10 @@ const Receiver = () => {
   return (
     <div className="fixed inset-0 bg-transparent flex items-center justify-center">
       {displayedSources.map((source) => (
-        <div key={source.id} className={`relative ${source.type === "audio" ? "hidden" : ""} w-full h-full`}>
+        <div
+          key={source.id}
+          className={`relative ${source.type === "audio" ? "hidden" : ""} w-full h-full`}
+        >
           {source.type === "audio" ? (
             <audio
               autoPlay
