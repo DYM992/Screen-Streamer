@@ -1,3 +1,5 @@
+"use client";
+
 import { Toaster } from "@/components/ui/ToasterClient";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
