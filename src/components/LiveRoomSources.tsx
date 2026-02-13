@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Monitor, Camera, Mic, ArrowRight, RefreshCw } from "lucide-react";
+import { Card, CardTitle } from "@/components/ui/card";
+import { Monitor, Camera, Mic, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
@@ -36,7 +35,6 @@ export const LiveRoomSources = ({ roomId }: Props) => {
     fetchSources();
   }, [roomId]);
 
-  // fade‑in after load
   useEffect(() => {
     if (!loading) {
       const timer = setTimeout(() => setVisible(true), 10);
@@ -86,11 +84,6 @@ export const LiveRoomSources = ({ roomId }: Props) => {
             {getIcon(src.type)}
             <CardTitle className="text-sm font-medium text-white">{src.label}</CardTitle>
           </div>
-          <CardHeader className="p-0">
-            <CardDescription className="text-xs text-white/80">
-              {src.type.charAt(0).toUpperCase() + src.type.slice(1)}
-            </CardDescription>
-          </CardHeader>
         </Card>
       ))}
     </div>
