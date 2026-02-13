@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Card, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Monitor, Camera, Mic, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -74,7 +74,7 @@ export const LiveRoomSources = ({ roomId }: Props) => {
       {sources.map((src) => (
         <Card
           key={src.id}
-          className={`flex items-center justify-center w-20 h-20 ${
+          className={`flex flex-col items-center justify-center w-20 h-20 gap-1 ${
             src.is_enabled
               ? "bg-emerald-500/20 border-emerald-500"
               : "bg-slate-900 border-slate-800"
@@ -82,6 +82,7 @@ export const LiveRoomSources = ({ roomId }: Props) => {
           onClick={() => navigate(`/receiver?room=${roomId}&sourceId=${src.id}`)}
         >
           {getIcon(src.type)}
+          <span className="text-xs font-medium text-white truncate">{src.label}</span>
         </Card>
       ))}
     </div>
