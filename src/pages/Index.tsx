@@ -97,20 +97,20 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-800 hover:border-emerald-500/50 transition-all cursor-pointer group overflow-hidden relative" onClick={() => navigate('/receiver')}>
+          <Card className="bg-slate-900 border-slate-800 hover:border-emerald-500/50 transition-all cursor-pointer group overflow-hidden relative" onClick={() => navigate('/live')}>
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <CardHeader className="relative z-10">
               <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <Tv className="text-emerald-500 w-7 h-7" />
               </div>
-              <CardTitle className="text-3xl text-white">Receiver</CardTitle>
+              <CardTitle className="text-3xl text-white">Live Rooms</CardTitle>
               <CardDescription className="text-slate-400 text-lg">
-                Join an existing room to monitor or capture streams.
+                View and join rooms that are currently streaming.
               </CardDescription>
             </CardHeader>
             <CardContent className="relative z-10">
               <Button variant="outline" className="w-full border-slate-700 text-slate-300 hover:bg-slate-800 h-14 text-lg font-black rounded-2xl">
-                Open Receiver
+                View Live
               </Button>
             </CardContent>
           </Card>
@@ -169,10 +169,10 @@ const Index = () => {
                           {room.is_live ? <Square className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
                         </Button>
                         <Button 
-                          variant="ghost" 
-                          size="icon" 
+                          variant="ghost"
+                          size="icon"
                           onClick={(e) => deleteRoom(room.id, e)}
-                          className="h-8 w-8 rounded-full bg-slate-800/50 text-slate-400 hover:bg-red-500 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
+                          className="h-8 w-8 text-slate-400 hover:text-red-400"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
