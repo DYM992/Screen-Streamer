@@ -182,33 +182,14 @@ export const useStreamManager = (roomName: string) => {
       });
 
       newPeer.on('connection', (conn) => {
-        // Data connections (if any) – add to connections set
         setConnections(prev => new Set(prev).add(conn.peer));
-        conn.on('close', () => {
-          setConnections(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(conn.peer);
-            return newSet;
-          });
-        });
       });
 
       newPeer.on('call', (call) => {
-        // Increment listener count when a receiver calls
-        setConnections(prev => new Set(prev).add(call.peer));
-
         call.answer();
-        call.on('close', () => {
-          // Remove listener when call ends
-          setConnections(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(call.peer);
-            return newSet;
-          });
-        });
-
         sourcesRef.current.forEach(source => {
           if (source.stream && source.isActive) {
+            // For camera sources, advertise as video/webm to indicate WebM codec
             const metaType = source.type === "camera" ? "video/webm" : source.type;
             newPeer.call(call.peer, source.stream, {
               metadata: { id: source.id, label: source.label, type: metaType }
