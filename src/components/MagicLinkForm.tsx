@@ -12,8 +12,16 @@ export const MagicLinkForm = () => {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase.auth.signInWithOtp({ email });
-    if (error) toast.error(error.message);
-    else toast.success("Check your inbox for the magic link!");
+    if (error) {
+      // Detect rate‑limit errors
+      if (error.status === 429 || error.message.toLowerCase().includes("rate limit")) {
+        toast.error("Too many magic‑link requests. Please wait a few minutes before trying again.");
+      } else {
+        toast.error(error.message);
+      }
+    } else {
+      toast.success("Check your inbox for the magic link!");
+    }
     setLoading(false);
   };
 
