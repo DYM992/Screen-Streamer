@@ -110,6 +110,24 @@ const Index = () => {
     toast.success("Logged out");
   };
 
+  const createRoom = async () => {
+    if (!userId) {
+      toast.error("You must be logged in to create a room");
+      return;
+    }
+    const newId = crypto.randomUUID();
+    const { error } = await supabase
+      .from("rooms")
+      .insert({ id: newId, user_id: userId });
+    if (error) {
+      console.error("Failed to create room", error);
+      toast.error("Failed to create room");
+    } else {
+      toast.success("Room created");
+      navigate(`/broadcaster?room=${newId}`);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative">
       {/* Conditional login/logout button */}
@@ -197,7 +215,13 @@ const Index = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="relative z-10">
-              <Button className="w-full bg-indigo-600 hover:bg-indigo-700 h-14 text-lg font-black rounded-2xl shadow-lg shadow-indigo-500/20">
+              <Button
+                className="w-full bg-indigo-600 hover:bg-indigo-700 h-14 text-lg font-black rounded-2xl shadow-lg shadow-indigo-500/20"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  createRoom();
+                }}
+              >
                 <Plus className="w-6 h-6 mr-2" /> Create Room
               </Button>
             </CardContent>
