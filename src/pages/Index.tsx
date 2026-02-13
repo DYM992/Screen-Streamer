@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +46,17 @@ const Index = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
   const [editName, setEditName] = useState<string>("");
+
+  // Ref for rename input to auto‑focus
+  const renameInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto‑focus when rename mode starts
+  useEffect(() => {
+    if (editingRoomId && renameInputRef.current) {
+      renameInputRef.current.focus();
+      renameInputRef.current.select();
+    }
+  }, [editingRoomId]);
 
   // Track auth state
   useEffect(() => {
@@ -123,7 +134,7 @@ const Index = () => {
     const newId = crypto.randomUUID();
     const { error } = await supabase
       .from("rooms")
-      .insert({ id: newId, user_id: userId });
+      .insert({ id: newId, user_id: userId, name: "New Room" });
     if (error) {
       console.error("Failed to create room", error);
       toast.error("Failed to create room");
@@ -159,7 +170,6 @@ const Index = () => {
       toast.error("Failed to rename room");
     } else {
       toast.success("Room renamed");
-      // Refresh list
       fetchRooms();
     }
     cancelRename();
@@ -323,14 +333,13 @@ const Index = () => {
 
                     <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
                       <span className="font-mono text-white font-bold text-sm bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
-                        {/* Show friendly name if present, otherwise UUID */}
                         {room.name ?? room.id}
                       </span>
                       <div className="flex gap-2">
-                        {/* Rename UI */}
                         {editingRoomId === room.id ? (
                           <div className="flex items-center gap-1">
                             <input
+                              ref={renameInputRef}
                               value={editName}
                               onChange={(e) => setEditName(e.target.value)}
                               className="bg-slate-800 text-white text-xs rounded px-2 py-1 focus:outline-none"
