@@ -70,26 +70,24 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        // New smooth slide‑down animation
+        "slide-down": {
+          from: { opacity: "0", transform: "translateY(-8px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
         },
       },
       animation: {
-        // Slower slide‑down animation for expanded lists
         "accordion-down": "accordion-down 0.5s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        // Apply the new slide‑down animation
+        "slide-down": "slide-down 0.45s ease-out forwards",
       },
     },
   },

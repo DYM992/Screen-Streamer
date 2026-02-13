@@ -130,10 +130,10 @@ const LiveRooms = () => {
                   </div>
                 </Card>
 
-                {/* Expanded source list – full width of the room card with slide‑down animation */}
+                {/* Expanded source list – use the new smooth slide‑down animation */}
                 {expandedRoom === room.id && (
                   <Card
-                    className="mt-2 bg-slate-800 border-slate-700 w-full overflow-hidden animate-accordion-down"
+                    className="mt-2 bg-slate-800 border-slate-700 w-full overflow-hidden animate-slide-down"
                   >
                     <CardHeader className="p-2">
                       <CardTitle className="text-sm font-medium text-white">
