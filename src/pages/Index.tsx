@@ -6,8 +6,6 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { Radio, Tv, ShieldCheck, History, ArrowRight, Plus, Trash2, Monitor, Play, Square, LogIn } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Auth } from "@supabase/auth-ui-react";
-import { ThemeSupa } from "@supabase/auth-ui-shared";
 
 interface RoomData {
   id: string;
@@ -93,15 +91,14 @@ const Index = () => {
             <DialogTitle>Login</DialogTitle>
             <DialogDescription>Please sign in to continue.</DialogDescription>
           </DialogHeader>
-          {/* Supabase Auth UI – supports email/password and Google */}
-          <Auth
-            supabaseClient={supabase}
-            providers={["google"]}
-            appearance={{
-              theme: ThemeSupa,
-            }}
-            theme="light"
-          />
+          {/* Google login button */}
+          <Button
+            onClick={handleGoogleLogin}
+            className="w-full mt-4 flex items-center justify-center gap-2 bg-white text-black hover:bg-gray-100"
+          >
+            <LogIn className="w-5 h-5" />
+            Sign in with Google
+          </Button>
         </DialogContent>
       </Dialog>
 
