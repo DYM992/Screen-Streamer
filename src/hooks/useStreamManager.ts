@@ -23,12 +23,20 @@ export const useStreamManager = (roomName: string) => {
 
   const sourcesRef = useRef<StreamSource[]>([]);
   const isBroadcastingRef = useRef(false);
+  const userIdRef = useRef<string | null>(null);
 
   // Sync refs with state
   useEffect(() => {
     sourcesRef.current = sources;
     isBroadcastingRef.current = isBroadcasting;
   }, [sources, isBroadcasting]);
+
+  // Get current user id once
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      userIdRef.current = data.user?.id ?? null;
+    });
+  }, []);
 
   // Load room and sources from Supabase
   useEffect(() => {
@@ -42,7 +50,17 @@ export const useStreamManager = (roomName: string) => {
         .single();
 
       if (!room) {
-        await supabase.from('rooms').insert({ id: roomName });
+        // Insert new room with ownership
+        const { error: insertError } = await supabase
+          .from('rooms')
+          .insert({
+            id: roomName,
+            user_id: userIdRef.current, // link to current user
+          });
+        if (insertError) {
+          console.error('Failed to create room', insertError);
+          return;
+        }
       }
 
       const { data: dbSources } = await supabase
@@ -88,8 +106,8 @@ export const useStreamManager = (roomName: string) => {
       if (source.dbId) {
         await supabase
           .from('sources')
-          .update({ 
-            label: source.label, 
+          .update({
+            label: source.label,
             is_enabled: source.isEnabled,
             device_id: source.deviceId,
             type: source.type
