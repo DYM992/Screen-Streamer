@@ -63,9 +63,9 @@ const Receiver = () => {
     : sources;
 
   if (status === 'error') return null;
-  if (status === 'connecting') return null;
+  if (status === 'loading') return null;
 
-  // Show a simple waiting UI when no matching source is yet available
+  // Show a waiting UI when no matching source is yet available
   if (displayedSources.length === 0) {
     return (
       <div className="fixed inset-0 bg-transparent flex items-center justify-center">
@@ -73,6 +73,15 @@ const Receiver = () => {
       </div>
     );
   }
+
+  // Autoplay all video elements once streams are attached
+  useEffect(() => {
+    const videos = document.querySelectorAll('video');
+    videos.forEach(v => {
+      // Ensure the video element is playing; ignore errors (e.g., autoplay blocked)
+      v.play().catch(() => {});
+    });
+  }, [displayedSources]);
 
   return (
     <div className="fixed inset-0 bg-transparent flex items-center justify-center">
